@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three-Signal Communication</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="settings-panel.css">
+</head>
+<body>
+    <div class="gaze-indicator" id="gazeIndicator">🎯 Initializing...</div>
+    <video class="video-preview" id="videoPreview" autoplay playsinline></video>
+    <canvas class="eye-visualization" id="eyeVisualization" width="400" height="200"></canvas>
+
+    <!-- Settings Panel Toggle Button -->
+    <button class="settings-toggle-btn" id="settingsToggleBtn">⚙️ Settings</button>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel">
+        <h3>Eye Tracking Settings</h3>
+
+        <div class="setting-group">
+            <label for="verticalThreshold">
+                Vertical Threshold (UP): <span id="verticalValue">0.45</span>
+            </label>
+            <input type="range" id="verticalThreshold" min="0.1" max="0.8" step="0.01" value="0.45">
+            <small>How far to look up (0.1 = easy, 0.8 = hard)</small>
+        </div>
+
+        <div class="setting-group">
+            <label for="horizontalThreshold">
+                Horizontal Threshold (LEFT/RIGHT): <span id="horizontalValue">0.22</span>
+            </label>
+            <input type="range" id="horizontalThreshold" min="0.1" max="0.5" step="0.01" value="0.22">
+            <small>Left/right sensitivity (0.1 = easy, 0.5 = hard)</small>
+        </div>
+
+        <div class="setting-group">
+            <label for="holdDuration">
+                Hold Duration: <span id="holdValue">750</span>ms
+            </label>
+            <input type="range" id="holdDuration" min="300" max="2000" step="50" value="750">
+            <small>How long to hold gaze (300-2000ms)</small>
+        </div>
+
+        <div class="setting-group">
+            <label for="stabilityFrames">
+                Stability Frames: <span id="stabilityValue">5</span>
+            </label>
+            <input type="range" id="stabilityFrames" min="2" max="10" step="1" value="5">
+            <small>How stable direction must be (2-10 frames)</small>
+        </div>
+
+        <div class="setting-group">
+            <label for="smoothingFactor">
+                Smoothing Factor: <span id="smoothingValue">0.60</span>
+            </label>
+            <input type="range" id="smoothingFactor" min="0.1" max="0.9" step="0.01" value="0.6">
+            <small>Reduce jitter (0.1 = responsive, 0.9 = smooth)</small>
+        </div>
+
+        <div class="setting-group">
+            <label for="headCompensation">
+                Head Compensation: <span id="headValue">0.30</span>
+            </label>
+            <input type="range" id="headCompensation" min="0" max="1" step="0.01" value="0.3">
+            <small>Head movement filtering (0 = off, 1.0 = max)</small>
+        </div>
+
+        <div class="setting-group">
+            <label class="toggle-label">
+                <input type="checkbox" id="cameraViewToggle" checked>
+                <span>Show Camera View</span>
+            </label>
+        </div>
+
+        <div class="setting-group">
+            <label class="toggle-label">
+                <input type="checkbox" id="eyeViewToggle" checked>
+                <span>Show Eye Visualization</span>
+            </label>
+        </div>
+
+        <div class="setting-group">
+            <label class="toggle-label">
+                <input type="checkbox" id="soundToggle" checked>
+                <span>Sound on Detection</span>
+            </label>
+        </div>
+
+        <button class="reset-btn" id="resetBtn">Reset to Defaults</button>
+        <small class="help-text">Press 'O' key to log current eye tracking values to console</small>
+    </div>
+
+    <div class="container">
+        <div class="instructions">
+            <strong>Look Left</strong> Select Left & Continue | <strong>Look Right</strong> Select Right & Continue | <strong>Look Up</strong> Special Menu
+        </div>
+
+        <div class="mode-indicator" id="modeIndicator">Letter Selection Mode</div>
+
+        <div class="menu-container">
+            <div class="column" id="leftColumn"></div>
+            <div class="column" id="rightColumn"></div>
+        </div>
+
+        <div class="text-area-container">
+            <textarea class="text-area" id="textArea" readonly placeholder="Your text will appear here..."></textarea>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+
+    <!-- Configuration -->
+    <script src="config.js"></script>
+
+    <!-- Data -->
+    <script src="database.js"></script>
+
+    <!-- Utilities -->
+    <script src="suggestions.js"></script>
+    <script src="storage.js"></script>
+
+    <!-- Features -->
+    <script src="menus.js"></script>
+    <script src="search.js"></script>
+    <script src="actions.js"></script>
+    <script src="eyetracking.js"></script>
+    <script src="settings.js"></script>
+
+    <!-- Main Application -->
+    <script src="main.js"></script>
+</body>
+</html>

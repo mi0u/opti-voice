@@ -1,0 +1,232 @@
+/* =============================================================================
+   SETTINGS PANEL STYLES
+   ============================================================================= */
+
+.settings-toggle-btn {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: #2c3e50;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    z-index: 1001;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.settings-toggle-btn:hover {
+    background: #34495e;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
+}
+
+.settings-toggle-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.settings-panel {
+    position: fixed;
+    top: 60px;
+    left: 10px;
+    width: 350px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: rgba(44, 62, 80, 0.98);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: none;
+    animation: slideIn 0.3s ease;
+}
+
+.settings-panel.visible {
+    display: block;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.settings-panel h3 {
+    margin: 0 0 20px 0;
+    font-size: 20px;
+    color: #3498db;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 10px;
+}
+
+.setting-group {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.setting-group:last-of-type {
+    border-bottom: none;
+}
+
+.setting-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    font-size: 14px;
+    color: #ecf0f1;
+}
+
+.setting-group label span {
+    color: #3498db;
+    font-family: monospace;
+    font-size: 15px;
+}
+
+.setting-group input[type="range"] {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+}
+
+.setting-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #3498db;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.setting-group input[type="range"]::-webkit-slider-thumb:hover {
+    background: #5dade2;
+    transform: scale(1.2);
+}
+
+.setting-group input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #3498db;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.setting-group input[type="range"]::-moz-range-thumb:hover {
+    background: #5dade2;
+    transform: scale(1.2);
+}
+
+.setting-group small {
+    display: block;
+    margin-top: 5px;
+    color: #95a5a6;
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* Toggle checkbox styling */
+.toggle-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    cursor: pointer;
+    accent-color: #3498db;
+}
+
+.toggle-label span {
+    color: #ecf0f1 !important;
+    font-weight: normal !important;
+    font-size: 14px !important;
+    font-family: inherit !important;
+}
+
+.reset-btn {
+    width: 100%;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: bold;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+}
+
+.reset-btn:hover {
+    background: #c0392b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.reset-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.help-text {
+    display: block;
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(52, 152, 219, 0.2);
+    border-left: 3px solid #3498db;
+    border-radius: 4px;
+    color: #ecf0f1;
+    font-size: 12px;
+}
+
+/* Scrollbar styling for settings panel */
+.settings-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.settings-panel::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.settings-panel::-webkit-scrollbar-thumb {
+    background: #3498db;
+    border-radius: 4px;
+}
+
+.settings-panel::-webkit-scrollbar-thumb:hover {
+    background: #5dade2;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+    .settings-panel {
+        width: calc(100% - 20px);
+        right: 10px;
+        left: 10px;
+        max-height: 70vh;
+    }
+}
