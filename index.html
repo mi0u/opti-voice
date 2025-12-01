@@ -20,26 +20,42 @@
         <h3>Eye Tracking Settings</h3>
 
         <div class="setting-group">
-            <label for="verticalThreshold">
-                Vertical Threshold (UP): <span id="verticalValue">0.45</span>
+            <label for="upThreshold">
+                Up Threshold: <span id="upValue">0.60</span>
             </label>
-            <input type="range" id="verticalThreshold" min="0.1" max="0.8" step="0.01" value="0.45">
-            <small>How far to look up (0.1 = easy, 0.8 = hard)</small>
+            <input type="range" id="upThreshold" min="0.1" max="1.5" step="0.01" value="0.60">
+            <small>Look up sensitivity (0.1 = easy, 1.5 = hard)</small>
         </div>
 
         <div class="setting-group">
-            <label for="horizontalThreshold">
-                Horizontal Threshold (LEFT/RIGHT): <span id="horizontalValue">0.22</span>
+            <label for="downThreshold">
+                Down Threshold: <span id="downValue">0.60</span>
             </label>
-            <input type="range" id="horizontalThreshold" min="0.1" max="0.5" step="0.01" value="0.22">
-            <small>Left/right sensitivity (0.1 = easy, 0.5 = hard)</small>
+            <input type="range" id="downThreshold" min="0.1" max="1.5" step="0.01" value="0.60">
+            <small>Look down sensitivity (0.1 = easy, 1.5 = hard)</small>
+        </div>
+
+        <div class="setting-group">
+            <label for="leftThreshold">
+                Left Threshold: <span id="leftValue">0.60</span>
+            </label>
+            <input type="range" id="leftThreshold" min="0.1" max="1.5" step="0.01" value="0.60">
+            <small>Look left sensitivity (0.1 = easy, 1.5 = hard)</small>
+        </div>
+
+        <div class="setting-group">
+            <label for="rightThreshold">
+                Right Threshold: <span id="rightValue">0.60</span>
+            </label>
+            <input type="range" id="rightThreshold" min="0.1" max="1.5" step="0.01" value="0.60">
+            <small>Look right sensitivity (0.1 = easy, 1.5 = hard)</small>
         </div>
 
         <div class="setting-group">
             <label for="holdDuration">
-                Hold Duration: <span id="holdValue">750</span>ms
+                Hold Duration: <span id="holdValue">500</span>ms
             </label>
-            <input type="range" id="holdDuration" min="300" max="2000" step="50" value="750">
+            <input type="range" id="holdDuration" min="300" max="2000" step="50" value="500">
             <small>How long to hold gaze (300-2000ms)</small>
         </div>
 
@@ -53,25 +69,10 @@
 
         <div class="setting-group">
             <label for="smoothingFactor">
-                Smoothing Factor: <span id="smoothingValue">0.60</span>
+                Smoothing Factor: <span id="smoothingValue">0.80</span>
             </label>
-            <input type="range" id="smoothingFactor" min="0.1" max="0.9" step="0.01" value="0.6">
+            <input type="range" id="smoothingFactor" min="0.1" max="0.9" step="0.01" value="0.8">
             <small>Reduce jitter (0.1 = responsive, 0.9 = smooth)</small>
-        </div>
-
-        <div class="setting-group">
-            <label for="headCompensation">
-                Head Compensation: <span id="headValue">0.30</span>
-            </label>
-            <input type="range" id="headCompensation" min="0" max="1" step="0.01" value="0.3">
-            <small>Head movement filtering (0 = off, 1.0 = max)</small>
-        </div>
-
-        <div class="setting-group">
-            <label class="toggle-label">
-                <input type="checkbox" id="cameraViewToggle" checked>
-                <span>Show Camera View</span>
-            </label>
         </div>
 
         <div class="setting-group">
@@ -109,9 +110,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
-
     <!-- Configuration -->
     <script src="config.js"></script>
 
@@ -126,7 +124,7 @@
     <script src="menus.js"></script>
     <script src="search.js"></script>
     <script src="actions.js"></script>
-    <script src="eyetracking.js"></script>
+    <script type="module" src="eyetracking.js"></script>
     <script src="settings.js"></script>
 
     <!-- Main Application -->

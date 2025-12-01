@@ -43,7 +43,6 @@ Click the ⚙️ Settings button to customize:
 - **Head Compensation**: Filter head movements (0 = off, 1.0 = max)
 
 ### Display Options
-- Toggle camera view visibility
 - Toggle eye visualization
 - Enable/disable sound feedback
 

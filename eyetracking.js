@@ -1,10 +1,14 @@
 // =============================================================================
-// MEDIAPIPE EYE TRACKING IMPLEMENTATION
+// MEDIAPIPE EYE TRACKING IMPLEMENTATION (BLEND SHAPES)
 // =============================================================================
 
 // Configuration object (will be loaded from config.js)
 // Note: This is a reference - actual config is in config.js
 // Global variables are declared in main.js
+
+// Import MediaPipe Vision Tasks
+import vision from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
+const { FaceLandmarker, FilesetResolver, DrawingUtils } = vision;
 
 // Audio context for direction detection tone
 let audioContext = null;
@@ -38,49 +42,35 @@ function playDetectionTone() {
 
 class EyeDirectionTracker {
     constructor() {
-        this.faceMesh = null;
-        this.camera = null;
+        this.faceLandmarker = null;
         this.videoElement = null;
         this.isActive = false;
         this.callback = null;
+        this.runningMode = "VIDEO";
+        this.lastVideoTime = -1;
+        this.webcamRunning = false;
 
-        // Smoothed iris positions
-        this.smoothedLeftIris = { x: 0, y: 0 };
-        this.smoothedRightIris = { x: 0, y: 0 };
-
-        // Canvas for eye visualization
-        this.canvas = null;
-        this.ctx = null;
-
-        // MediaPipe landmark indices
-        this.landmarks = {
-            leftEye: {
-                outer: 33,
-                inner: 133,
-                top: 159,
-                bottom: 145,
-                iris: [468, 469, 470, 471, 472],
-                // Full eye contour points (upper and lower eyelid)
-                contour: [33, 160, 161, 246, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159]
-            },
-            rightEye: {
-                outer: 362,
-                inner: 263,
-                top: 386,
-                bottom: 374,
-                iris: [473, 474, 475, 476, 477],
-                // Full eye contour points (upper and lower eyelid)
-                contour: [362, 385, 386, 387, 388, 466, 263, 249, 390, 373, 374, 380, 381, 382, 362]
-            },
-            // Head reference points for movement compensation
-            nose: 1,
-            forehead: 10,
-            chin: 152
+        // Smoothed blend shape values
+        this.smoothedBlendShapes = {
+            eyeLookUpLeft: 0,
+            eyeLookUpRight: 0,
+            eyeLookDownLeft: 0,
+            eyeLookDownRight: 0,
+            eyeLookInLeft: 0,
+            eyeLookInRight: 0,
+            eyeLookOutLeft: 0,
+            eyeLookOutRight: 0
         };
 
-        // Previous head position for movement detection
-        this.prevHeadY = 0;
-        this.smoothedHeadY = 0;
+        // Canvas for visualization
+        this.canvas = null;
+        this.ctx = null;
+        this.drawingUtils = null;
+
+        // Dragging state
+        this.isDragging = false;
+        this.dragOffsetX = 0;
+        this.dragOffsetY = 0;
     }
 
     async initialize() {
@@ -99,57 +89,173 @@ class EyeDirectionTracker {
                 }
             });
 
-            this.videoElement.srcObject = stream;
-            videoPreview.srcObject = stream;
-            videoPreview.style.display = 'block';
+            console.log('[EYE] Camera stream obtained');
 
-            // Initialize eye visualization canvas
+            this.videoElement.srcObject = stream;
+            this.videoElement.autoplay = true;
+            this.videoElement.playsInline = true;
+            this.videoElement.muted = true;
+
+            // Initialize visualization canvas
             this.canvas = document.getElementById('eyeVisualization');
+            if (!this.canvas) {
+                console.error('[EYE] eyeVisualization canvas not found!');
+                throw new Error('Canvas element not found');
+            }
             this.ctx = this.canvas.getContext('2d');
             this.canvas.style.display = 'block';
+            this.canvas.style.position = 'absolute';
+            this.canvas.style.cursor = 'move';
+            console.log('[EYE] Canvas initialized:', this.canvas.width, 'x', this.canvas.height);
 
-            console.log('[EYE] Initializing MediaPipe Face Mesh...');
+            // Add dragging event listeners
+            this.setupDragging();
 
-            this.faceMesh = new FaceMesh({
-                locateFile: (file) => {
-                    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-                }
-            });
+            console.log('[EYE] Initializing MediaPipe Face Landmarker...');
 
-            this.faceMesh.setOptions({
-                maxNumFaces: 1,
-                refineLandmarks: true,
-                minDetectionConfidence: 0.5,
-                minTrackingConfidence: 0.5
-            });
+            // Create Face Landmarker with blend shapes enabled
+            const filesetResolver = await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+            );
 
-            this.faceMesh.onResults((results) => this.processResults(results));
-
-            this.camera = new Camera(this.videoElement, {
-                onFrame: async () => {
-                    await this.faceMesh.send({ image: this.videoElement });
+            this.faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+                baseOptions: {
+                    modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+                    delegate: "GPU"
                 },
-                width: 1280,
-                height: 720
+                outputFaceBlendshapes: true,
+                runningMode: this.runningMode,
+                numFaces: 1
             });
 
-            await this.camera.start();
+            // Wait for video to be ready (with timeout)
+            console.log('[EYE] Waiting for video to load...');
+            await Promise.race([
+                new Promise((resolve) => {
+                    this.videoElement.addEventListener('loadeddata', resolve, { once: true });
+                }),
+                new Promise((resolve) => setTimeout(resolve, 3000)) // 3 second timeout
+            ]);
+
+            console.log('[EYE] Video loaded (or timeout), starting playback...');
+
+            // Start video playback
+            try {
+                await this.videoElement.play();
+                console.log('[EYE] Video playback started successfully');
+            } catch (playError) {
+                console.warn('[EYE] Video autoplay failed:', playError);
+                // Try to play on user interaction
+                document.addEventListener('click', async () => {
+                    try {
+                        await this.videoElement.play();
+                        console.log('[EYE] Video started after user interaction');
+                    } catch (e) {
+                        console.error('[EYE] Failed to start video:', e);
+                    }
+                }, { once: true });
+            }
+
+            this.drawingUtils = new DrawingUtils(this.ctx);
+            console.log('[EYE] DrawingUtils initialized');
 
             console.log('[EYE] Eye tracking initialized successfully');
-            gazeIndicator.textContent = '✓ Eye Tracking Active';
-            gazeIndicator.classList.add('active');
+            const gazeIndicator = document.getElementById('gazeIndicator');
+            if (gazeIndicator) {
+                gazeIndicator.textContent = '✓ Eye Tracking Active';
+                gazeIndicator.classList.add('active');
+            }
 
             return true;
         } catch (error) {
             console.error('[EYE] Initialization error:', error);
-            gazeIndicator.textContent = '❌ Camera Error - Using Keyboard';
-            gazeIndicator.classList.add('error');
+            const gazeIndicator = document.getElementById('gazeIndicator');
+            if (gazeIndicator) {
+                gazeIndicator.textContent = '❌ Camera Error - Using Keyboard';
+                gazeIndicator.classList.add('error');
+            }
             return false;
         }
     }
 
+    setupDragging() {
+        this.canvas.addEventListener('mousedown', (e) => {
+            this.isDragging = true;
+            const rect = this.canvas.getBoundingClientRect();
+            this.dragOffsetX = e.clientX - rect.left;
+            this.dragOffsetY = e.clientY - rect.top;
+            this.canvas.style.cursor = 'grabbing';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!this.isDragging) return;
+
+            const newLeft = e.clientX - this.dragOffsetX;
+            const newTop = e.clientY - this.dragOffsetY;
+
+            this.canvas.style.left = `${newLeft}px`;
+            this.canvas.style.top = `${newTop}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (this.isDragging) {
+                this.isDragging = false;
+                this.canvas.style.cursor = 'move';
+            }
+        });
+
+        // Touch support for mobile
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.isDragging = true;
+            const rect = this.canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            this.dragOffsetX = touch.clientX - rect.left;
+            this.dragOffsetY = touch.clientY - rect.top;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!this.isDragging) return;
+            e.preventDefault();
+
+            const touch = e.touches[0];
+            const newLeft = touch.clientX - this.dragOffsetX;
+            const newTop = touch.clientY - this.dragOffsetY;
+
+            this.canvas.style.left = `${newLeft}px`;
+            this.canvas.style.top = `${newTop}px`;
+        });
+
+        document.addEventListener('touchend', () => {
+            this.isDragging = false;
+        });
+    }
+
+    async predictWebcam() {
+        if (!this.webcamRunning || !this.videoElement) {
+            console.log('[EYE] Prediction loop stopped: webcamRunning=', this.webcamRunning, 'videoElement=', !!this.videoElement);
+            return;
+        }
+
+        const startTimeMs = performance.now();
+
+        // Only process if video time has changed
+        if (this.lastVideoTime !== this.videoElement.currentTime) {
+            this.lastVideoTime = this.videoElement.currentTime;
+            try {
+                const results = this.faceLandmarker.detectForVideo(this.videoElement, startTimeMs);
+                this.processResults(results);
+            } catch (detectError) {
+                console.error('[EYE] Detection error:', detectError);
+            }
+        }
+
+        // Continue prediction loop
+        window.requestAnimationFrame(() => this.predictWebcam());
+    }
+
     processResults(results) {
-        if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+        if (!results.faceBlendshapes || results.faceBlendshapes.length === 0) {
             if (this.callback) {
                 this.callback(null);
             }
@@ -157,198 +263,71 @@ class EyeDirectionTracker {
             return;
         }
 
-        const landmarks = results.multiFaceLandmarks[0];
-        const direction = this.calculateEyeDirection(landmarks);
+        const blendShapes = results.faceBlendshapes[0].categories;
+        const direction = this.calculateEyeDirection(blendShapes);
 
-        // Draw eye visualization
-        this.drawEyeVisualization(landmarks);
+        // Draw visualization (with error handling)
+        try {
+            this.drawVisualization(results, blendShapes);
+        } catch (drawError) {
+            console.error('[EYE] Draw error:', drawError);
+        }
 
         if (this.callback) {
             this.callback(direction);
         }
     }
 
-    calculateEyeDirection(landmarks) {
-        // Get eye corner and iris positions for both eyes
-        const leftEyeData = this.getEyeMetrics(landmarks, this.landmarks.leftEye);
-        const rightEyeData = this.getEyeMetrics(landmarks, this.landmarks.rightEye);
+    calculateEyeDirection(blendShapes) {
+        // Extract the 8 eye blend shape values
+        const getBlendShapeValue = (name) => {
+            const shape = blendShapes.find(s => s.categoryName === name || s.displayName === name);
+            return shape ? shape.score : 0;
+        };
 
-        if (!leftEyeData || !rightEyeData) {
-            return null;
-        }
+        const eyeLookUpLeft = getBlendShapeValue('eyeLookUpLeft');
+        const eyeLookUpRight = getBlendShapeValue('eyeLookUpRight');
+        const eyeLookDownLeft = getBlendShapeValue('eyeLookDownLeft');
+        const eyeLookDownRight = getBlendShapeValue('eyeLookDownRight');
+        const eyeLookInLeft = getBlendShapeValue('eyeLookInLeft');
+        const eyeLookInRight = getBlendShapeValue('eyeLookInRight');
+        const eyeLookOutLeft = getBlendShapeValue('eyeLookOutLeft');
+        const eyeLookOutRight = getBlendShapeValue('eyeLookOutRight');
 
         // Apply smoothing to reduce jitter
         const alpha = EYE_DETECTION_CONFIG.SMOOTHING_FACTOR;
-        this.smoothedLeftIris.x = alpha * leftEyeData.irisX + (1 - alpha) * this.smoothedLeftIris.x;
-        this.smoothedLeftIris.y = alpha * leftEyeData.irisY + (1 - alpha) * this.smoothedLeftIris.y;
-        this.smoothedRightIris.x = alpha * rightEyeData.irisX + (1 - alpha) * this.smoothedRightIris.x;
-        this.smoothedRightIris.y = alpha * rightEyeData.irisY + (1 - alpha) * this.smoothedRightIris.y;
+        this.smoothedBlendShapes.eyeLookUpLeft = alpha * eyeLookUpLeft + (1 - alpha) * this.smoothedBlendShapes.eyeLookUpLeft;
+        this.smoothedBlendShapes.eyeLookUpRight = alpha * eyeLookUpRight + (1 - alpha) * this.smoothedBlendShapes.eyeLookUpRight;
+        this.smoothedBlendShapes.eyeLookDownLeft = alpha * eyeLookDownLeft + (1 - alpha) * this.smoothedBlendShapes.eyeLookDownLeft;
+        this.smoothedBlendShapes.eyeLookDownRight = alpha * eyeLookDownRight + (1 - alpha) * this.smoothedBlendShapes.eyeLookDownRight;
+        this.smoothedBlendShapes.eyeLookInLeft = alpha * eyeLookInLeft + (1 - alpha) * this.smoothedBlendShapes.eyeLookInLeft;
+        this.smoothedBlendShapes.eyeLookInRight = alpha * eyeLookInRight + (1 - alpha) * this.smoothedBlendShapes.eyeLookInRight;
+        this.smoothedBlendShapes.eyeLookOutLeft = alpha * eyeLookOutLeft + (1 - alpha) * this.smoothedBlendShapes.eyeLookOutLeft;
+        this.smoothedBlendShapes.eyeLookOutRight = alpha * eyeLookOutRight + (1 - alpha) * this.smoothedBlendShapes.eyeLookOutRight;
 
-        // Calculate normalized iris positions relative to eye boundaries
-        const leftNormalized = this.normalizeIrisPosition(
-            this.smoothedLeftIris,
-            leftEyeData.outer,
-            leftEyeData.inner,
-            leftEyeData.top,
-            leftEyeData.bottom,
-            leftEyeData.eyeHeight,
-            leftEyeData.irisBottomRatio
-        );
-
-        const rightNormalized = this.normalizeIrisPosition(
-            this.smoothedRightIris,
-            rightEyeData.outer,
-            rightEyeData.inner,
-            rightEyeData.top,
-            rightEyeData.bottom,
-            rightEyeData.eyeHeight,
-            rightEyeData.irisBottomRatio
-        );
-
-        // Average both eyes for horizontal
-        let avgHorizontal = (leftNormalized.horizontal + rightNormalized.horizontal) / 2;
-
-        // For vertical, BOTH eyes must agree they're looking up
-        // We take the LESS negative value (the one looking up less)
-        // This means both eyes must be looking up significantly
-        let avgVertical = Math.max(leftNormalized.vertical, rightNormalized.vertical);
-
-        // Optional minimal head compensation
-        const nose = landmarks[this.landmarks.nose];
-        const forehead = landmarks[this.landmarks.forehead];
-        const chin = landmarks[this.landmarks.chin];
-        const headPitch = (nose.y - forehead.y) / (chin.y - forehead.y);
-
-        if (this.smoothedHeadY === undefined) {
-            this.smoothedHeadY = headPitch;
-        }
-        this.smoothedHeadY = alpha * headPitch + (1 - alpha) * this.smoothedHeadY;
-
-        const headCompensation = EYE_DETECTION_CONFIG.HEAD_COMPENSATION;
-        const headDeviation = (this.smoothedHeadY - 0.5);
-
-        // Very light compensation
-        avgVertical = avgVertical - (headDeviation * headCompensation);
-
-        // Calculate average iris-to-bottom-eyelid ratio (primary up detection metric)
-        const avgIrisBottomRatio = (leftNormalized.irisBottomRatio + rightNormalized.irisBottomRatio) / 2;
-
-        // Calculate average eye openness
-        const avgEyeOpenness = (leftNormalized.eyeOpenness + rightNormalized.eyeOpenness) / 2;
-
-        // For reference eye openness (calibration baseline)
-        // We'll use a moving average approach - store typical openness
-        if (!this.baselineEyeOpenness) {
-            this.baselineEyeOpenness = avgEyeOpenness;
-        } else {
-            // Slowly adapt baseline (very slow to avoid drift)
-            this.baselineEyeOpenness = 0.99 * this.baselineEyeOpenness + 0.01 * avgEyeOpenness;
-        }
-
-        // Calculate eye openness ratio (current / baseline)
-        const eyeOpennessRatio = avgEyeOpenness / (this.baselineEyeOpenness > 0 ? this.baselineEyeOpenness : 1);
+        // Combine both eyes into directional pairs
+        const up_score = (this.smoothedBlendShapes.eyeLookUpLeft + this.smoothedBlendShapes.eyeLookUpRight) / 2;
+        const down_score = (this.smoothedBlendShapes.eyeLookDownLeft + this.smoothedBlendShapes.eyeLookDownRight) / 2;
+        // Reverted to original logic:
+        const left_score = (this.smoothedBlendShapes.eyeLookOutLeft + this.smoothedBlendShapes.eyeLookInRight) / 2;  // looking LEFT
+        const right_score = (this.smoothedBlendShapes.eyeLookInLeft + this.smoothedBlendShapes.eyeLookOutRight) / 2; // looking RIGHT
 
         if (EYE_DETECTION_CONFIG.DEBUG_MODE) {
-            console.log(`[EYE] H: ${avgHorizontal.toFixed(3)}, V: ${avgVertical.toFixed(3)}, IrisBottom: ${avgIrisBottomRatio.toFixed(3)}, EyeOpen: ${eyeOpennessRatio.toFixed(3)} (L:${leftNormalized.vertical.toFixed(3)}, R:${rightNormalized.vertical.toFixed(3)})`);
+            console.log(`[EYE] UP: ${up_score.toFixed(3)}, DOWN: ${down_score.toFixed(3)}, LEFT: ${left_score.toFixed(3)}, RIGHT: ${right_score.toFixed(3)}`);
         }
 
         // Determine direction based on thresholds
-        const absHorizontal = Math.abs(avgHorizontal);
-
-        // UP detection: NEW IMPROVED ALGORITHM
-        // Primary: Check iris distance from bottom eyelid
-        // When looking up, iris moves away from bottom eyelid
-        // Threshold: irisBottomRatio > 0.65 means iris is in upper portion of eye
-        //
-        // Secondary: Consider eye openness
-        // When looking up, eyes often open wider (ratio > 0.9)
-        // But this is optional - some people don't open eyes wider
-        //
-        // Also require minimal horizontal movement
-        const irisBottomThreshold = 0.65;  // Iris should be in upper 35% of eye
-        const minEyeOpennessRatio = 0.85;   // Eye should be reasonably open
-
-        if (avgIrisBottomRatio > irisBottomThreshold &&
-            absHorizontal < EYE_DETECTION_CONFIG.HORIZONTAL_THRESHOLD * 0.9 &&
-            eyeOpennessRatio > minEyeOpennessRatio &&
-            leftNormalized.irisBottomRatio > irisBottomThreshold * 0.9 &&
-            rightNormalized.irisBottomRatio > irisBottomThreshold * 0.9) {
+        if (up_score > EYE_DETECTION_CONFIG.UP_THRESHOLD) {
             return 'up';
-        }
-
-        // Horizontal checks - REVERSED for mirrored camera
-        if (avgHorizontal > EYE_DETECTION_CONFIG.HORIZONTAL_THRESHOLD) {
+        } else if (down_score > EYE_DETECTION_CONFIG.DOWN_THRESHOLD) {
+            return 'down';
+        } else if (left_score > EYE_DETECTION_CONFIG.LEFT_THRESHOLD) {
             return 'left';
-        } else if (avgHorizontal < -EYE_DETECTION_CONFIG.HORIZONTAL_THRESHOLD) {
+        } else if (right_score > EYE_DETECTION_CONFIG.RIGHT_THRESHOLD) {
             return 'right';
         }
 
         return null;
-    }
-
-    getEyeMetrics(landmarks, eyeIndices) {
-        try {
-            const outer = landmarks[eyeIndices.outer];
-            const inner = landmarks[eyeIndices.inner];
-            const top = landmarks[eyeIndices.top];
-            const bottom = landmarks[eyeIndices.bottom];
-
-            // Calculate iris center from 5 iris landmarks
-            let irisX = 0, irisY = 0;
-            for (let idx of eyeIndices.iris) {
-                irisX += landmarks[idx].x;
-                irisY += landmarks[idx].y;
-            }
-            irisX /= eyeIndices.iris.length;
-            irisY /= eyeIndices.iris.length;
-
-            // Calculate eye openness (vertical distance between top and bottom)
-            const eyeHeight = Math.abs(top.y - bottom.y);
-
-            // Calculate distance from iris to bottom eyelid (key for up detection)
-            // When looking up, iris moves away from bottom eyelid
-            const irisToBottomDistance = Math.abs(bottom.y - irisY);
-
-            // Normalized ratio: how far is iris from bottom relative to eye height
-            // Higher values = iris is further from bottom = looking up
-            const irisBottomRatio = irisToBottomDistance / (eyeHeight > 0 ? eyeHeight : 1);
-
-            return {
-                outer: outer,
-                inner: inner,
-                top: top,
-                bottom: bottom,
-                irisX: irisX,
-                irisY: irisY,
-                eyeHeight: eyeHeight,
-                irisBottomRatio: irisBottomRatio
-            };
-        } catch (error) {
-            return null;
-        }
-    }
-
-    normalizeIrisPosition(iris, outer, inner, top, bottom, eyeHeight, irisBottomRatio) {
-        // Calculate eye dimensions
-        const eyeWidth = Math.abs(outer.x - inner.x);
-        const eyeCenterX = (outer.x + inner.x) / 2;
-        const eyeCenterY = (top.y + bottom.y) / 2;
-
-        // Calculate normalized position (-1 to 1 scale)
-        // Horizontal: Negative = left, Positive = right (in camera view)
-        const horizontalOffset = (iris.x - eyeCenterX) / (eyeWidth / 2);
-
-        // Vertical: When looking UP, iris.y DECREASES (moves toward top of frame)
-        // So: (iris.y - eyeCenterY) will be NEGATIVE when looking up
-        // We keep it as is so negative = up, positive = down
-        const verticalOffset = (iris.y - eyeCenterY) / (eyeHeight / 2);
-
-        return {
-            horizontal: horizontalOffset,
-            vertical: verticalOffset,
-            eyeOpenness: eyeHeight,
-            irisBottomRatio: irisBottomRatio
-        };
     }
 
     onDirectionDetected(callback) {
@@ -361,8 +340,11 @@ class EyeDirectionTracker {
         }
     }
 
-    drawEyeVisualization(landmarks) {
-        if (!this.ctx || !this.videoElement) return;
+    drawVisualization(results, blendShapes) {
+        if (!this.ctx || !this.videoElement) {
+            console.warn('[EYE] Cannot draw: context or video missing');
+            return;
+        }
 
         const ctx = this.ctx;
         const width = this.canvas.width;
@@ -371,192 +353,131 @@ class EyeDirectionTracker {
         // Clear canvas
         ctx.clearRect(0, 0, width, height);
 
+        // Draw video frame
         const videoWidth = this.videoElement.videoWidth;
         const videoHeight = this.videoElement.videoHeight;
 
-        // Get all corner points to find the true outermost positions
-        const leftEyeOuter = landmarks[this.landmarks.leftEye.outer];   // Point 33
-        const leftEyeInner = landmarks[this.landmarks.leftEye.inner];   // Point 133
-        const rightEyeOuter = landmarks[this.landmarks.rightEye.outer]; // Point 362
-        const rightEyeInner = landmarks[this.landmarks.rightEye.inner]; // Point 263
+        if (videoWidth > 0 && videoHeight > 0) {
+            // Calculate aspect ratio scaling
+            const videoAspect = videoWidth / videoHeight;
+            const canvasAspect = width / height;
 
-        // Find the actual leftmost and rightmost points from all four corners
-        const leftmost = Math.min(leftEyeOuter.x, leftEyeInner.x, rightEyeOuter.x, rightEyeInner.x);
-        const rightmost = Math.max(leftEyeOuter.x, leftEyeInner.x, rightEyeOuter.x, rightEyeInner.x);
+            let drawWidth, drawHeight, drawX, drawY;
+            if (videoAspect > canvasAspect) {
+                drawHeight = height;
+                drawWidth = height * videoAspect;
+                drawX = (width - drawWidth) / 2;
+                drawY = 0;
+            } else {
+                drawWidth = width;
+                drawHeight = width / videoAspect;
+                drawX = 0;
+                drawY = (height - drawHeight) / 2;
+            }
 
-        // Get vertical extent from all eye contour points
-        let minY = 1, maxY = 0;
-        for (let idx of this.landmarks.leftEye.contour.concat(this.landmarks.rightEye.contour)) {
-            minY = Math.min(minY, landmarks[idx].y);
-            maxY = Math.max(maxY, landmarks[idx].y);
+            ctx.drawImage(this.videoElement, drawX, drawY, drawWidth, drawHeight);
+
+            // Draw face landmarks if available
+            if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+                const landmarks = results.faceLandmarks[0];
+
+                // Save context and apply scaling for landmarks
+                ctx.save();
+                ctx.translate(drawX, drawY);
+                ctx.scale(drawWidth, drawHeight);
+
+                // Draw eyes using DrawingUtils
+                this.drawingUtils.drawConnectors(
+                    landmarks,
+                    FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,
+                    { color: "#FF3030", lineWidth: 1 }
+                );
+                this.drawingUtils.drawConnectors(
+                    landmarks,
+                    FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,
+                    { color: "#30FF30", lineWidth: 1 }
+                );
+
+                ctx.restore();
+            }
         }
 
-        // Calculate horizontal distance between the true outermost corners
-        const eyeDistance = rightmost - leftmost;
-
-        // Center between the outermost corners
-        const eyesCenterX = (leftmost + rightmost) / 2;
-        const eyesCenterY = (minY + maxY) / 2;        // Use a fixed crop size based on eye distance with padding
-        const horizontalPadding = 0.4; // 40% padding on each side horizontally
-        const verticalPadding = 0.8; // 80% padding vertically to show eyebrows and more
-
-        const cropWidth = eyeDistance * (1 + horizontalPadding * 2);
-        const cropHeight = cropWidth / 2; // Fixed aspect ratio (2:1)
-
-        // Calculate crop region in normalized coordinates
-        const cropMinX = Math.max(0, eyesCenterX - cropWidth / 2);
-        const cropMinY = Math.max(0, eyesCenterY - cropHeight / 2);
-        const cropMaxX = Math.min(1, eyesCenterX + cropWidth / 2);
-        const cropMaxY = Math.min(1, eyesCenterY + cropHeight / 2);
-
-        const finalCropWidth = cropMaxX - cropMinX;
-        const finalCropHeight = cropMaxY - cropMinY;
-
-        // Draw cropped video (just the eye region)
-        const srcX = cropMinX * videoWidth;
-        const srcY = cropMinY * videoHeight;
-        const srcWidth = finalCropWidth * videoWidth;
-        const srcHeight = finalCropHeight * videoHeight;
-
-        // Scale to fill canvas while maintaining aspect ratio
-        const cropAspect = srcWidth / srcHeight;
-        const canvasAspect = width / height;
-
-        let drawWidth, drawHeight, drawX, drawY;
-        if (cropAspect > canvasAspect) {
-            // Crop is wider - fit to height
-            drawHeight = height;
-            drawWidth = height * cropAspect;
-            drawX = (width - drawWidth) / 2;
-            drawY = 0;
-        } else {
-            // Crop is taller - fit to width
-            drawWidth = width;
-            drawHeight = width / cropAspect;
-            drawX = 0;
-            drawY = (height - drawHeight) / 2;
-        }
-
-        ctx.drawImage(this.videoElement, srcX, srcY, srcWidth, srcHeight, drawX, drawY, drawWidth, drawHeight);
-
-        // Helper function to convert landmark to canvas coordinates
-        const toCanvas = (landmark) => {
-            // Map normalized landmark to position within the cropped region
-            const relX = (landmark.x - cropMinX) / finalCropWidth;
-            const relY = (landmark.y - cropMinY) / finalCropHeight;
-            return {
-                x: drawX + relX * drawWidth,
-                y: drawY + relY * drawHeight
-            };
-        };
-
-        // Draw both eyes with shared coordinate system (labels swapped because canvas is mirrored)
-        this.drawEyeRegion(ctx, landmarks, this.landmarks.leftEye, toCanvas, 'Right Eye', 50, 30);
-        this.drawEyeRegion(ctx, landmarks, this.landmarks.rightEye, toCanvas, 'Left Eye', 350, 30);
+        // Draw blend shape values
+        this.drawBlendShapeValues(blendShapes, 10, 30);
     }
 
-    drawEyeRegion(ctx, landmarks, eyeIndices, toCanvas, label, labelX, labelY) {
-        // Draw eye contour (full eyelid shape)
-        if (eyeIndices.contour) {
-            ctx.strokeStyle = '#00ff00';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
+    drawBlendShapeValues(blendShapes, x, y) {
+        const ctx = this.ctx;
 
-            const firstPoint = toCanvas(landmarks[eyeIndices.contour[0]]);
-            ctx.moveTo(firstPoint.x, firstPoint.y);
+        // Extract eye blend shape values
+        const getBlendShapeValue = (name) => {
+            const shape = blendShapes.find(s => s.categoryName === name || s.displayName === name);
+            return shape ? shape.score : 0;
+        };
 
-            for (let i = 1; i < eyeIndices.contour.length; i++) {
-                const point = toCanvas(landmarks[eyeIndices.contour[i]]);
-                ctx.lineTo(point.x, point.y);
-            }
-            ctx.closePath();
-            ctx.stroke();
+        const values = {
+            'Up Left': getBlendShapeValue('eyeLookUpLeft'),
+            'Up Right': getBlendShapeValue('eyeLookUpRight'),
+            'Down Left': getBlendShapeValue('eyeLookDownLeft'),
+            'Down Right': getBlendShapeValue('eyeLookDownRight'),
+            'In Left': getBlendShapeValue('eyeLookInLeft'),
+            'In Right': getBlendShapeValue('eyeLookInRight'),
+            'Out Left': getBlendShapeValue('eyeLookOutLeft'),
+            'Out Right': getBlendShapeValue('eyeLookOutRight')
+        };
 
-            // Draw contour points
-            ctx.fillStyle = '#00ff00';
-            for (let idx of eyeIndices.contour) {
-                const point = toCanvas(landmarks[idx]);
-                ctx.beginPath();
-                ctx.arc(point.x, point.y, 2, 0, 2 * Math.PI);
-                ctx.fill();
-            }
-        }
+        // Calculate directional scores
+        const up_score = (values['Up Left'] + values['Up Right']) / 2;
+        const down_score = (values['Down Left'] + values['Down Right']) / 2;
+        // Match the logic from calculateEyeDirection (reverted to original)
+        const left_score = (values['Out Left'] + values['In Right']) / 2;
+        const right_score = (values['In Left'] + values['Out Right']) / 2;
 
-        // Draw the 4 main boundary points (larger)
-        const outer = landmarks[eyeIndices.outer];
-        const inner = landmarks[eyeIndices.inner];
-        const top = landmarks[eyeIndices.top];
-        const bottom = landmarks[eyeIndices.bottom];
-
-        const outerPos = toCanvas(outer);
-        const innerPos = toCanvas(inner);
-        const topPos = toCanvas(top);
-        const bottomPos = toCanvas(bottom);
-
-        ctx.fillStyle = '#ffff00';
-        ctx.beginPath();
-        ctx.arc(outerPos.x, outerPos.y, 5, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(innerPos.x, innerPos.y, 5, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(topPos.x, topPos.y, 5, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(bottomPos.x, bottomPos.y, 5, 0, 2 * Math.PI);
-        ctx.fill();
-
-        // Calculate iris center
-        let irisX = 0, irisY = 0;
-        for (let idx of eyeIndices.iris) {
-            irisX += landmarks[idx].x;
-            irisY += landmarks[idx].y;
-        }
-        irisX /= eyeIndices.iris.length;
-        irisY /= eyeIndices.iris.length;
-
-        // Draw all 5 iris landmarks as small points
-        ctx.fillStyle = '#ff8800';
-        for (let idx of eyeIndices.iris) {
-            const irisPoint = toCanvas(landmarks[idx]);
-            ctx.beginPath();
-            ctx.arc(irisPoint.x, irisPoint.y, 3, 0, 2 * Math.PI);
-            ctx.fill();
-        }
-
-        // Draw iris center
-        const irisPos = toCanvas({ x: irisX, y: irisY });
-        ctx.fillStyle = '#ff0000';
-        ctx.beginPath();
-        ctx.arc(irisPos.x, irisPos.y, 8, 0, 2 * Math.PI);
-        ctx.fill();
-
-        // Draw iris outline
-        ctx.strokeStyle = '#ff0000';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(irisPos.x, irisPos.y, 12, 0, 2 * Math.PI);
-        ctx.stroke();
-
-        // Draw label (counter-flip the text since canvas is mirrored)
+        // Save context and apply horizontal flip for text
         ctx.save();
-        ctx.translate(labelX, labelY);
         ctx.scale(-1, 1);
+        const flippedX = -x - 200; // Adjust x position for flipped coordinates
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(flippedX + 55, y - 20, 140, 140);
+
         ctx.fillStyle = '#ffffff';
-        ctx.font = '14px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(label, 0, 0);
+        ctx.font = '12px monospace';
+
+        let lineY = y;
+        const textX = flippedX + 60; // Align text with the rectangle
+        ctx.fillText(`UP:    ${up_score.toFixed(3)}`, textX, lineY);
+        lineY += 15;
+        ctx.fillText(`DOWN:  ${down_score.toFixed(3)}`, textX, lineY);
+        lineY += 15;
+        ctx.fillText(`LEFT:  ${left_score.toFixed(3)}`, textX, lineY);
+        lineY += 15;
+        ctx.fillText(`RIGHT: ${right_score.toFixed(3)}`, textX, lineY);
+        lineY += 20;
+
+        // Draw threshold indicators
+        ctx.fillStyle = '#ffff00';
+        ctx.font = '11px monospace';
+        ctx.fillText(`Thresholds:`, textX, lineY);
+        lineY += 15;
+        ctx.fillStyle = '#aaaaaa';
+        ctx.fillText(`U:${EYE_DETECTION_CONFIG.UP_THRESHOLD.toFixed(2)} D:${EYE_DETECTION_CONFIG.DOWN_THRESHOLD.toFixed(2)}`, textX, lineY);
+        lineY += 12;
+        ctx.fillText(`L:${EYE_DETECTION_CONFIG.LEFT_THRESHOLD.toFixed(2)} R:${EYE_DETECTION_CONFIG.RIGHT_THRESHOLD.toFixed(2)}`, textX, lineY);
+
         ctx.restore();
-    }    start() {
+    }
+
+    start() {
+        console.log('[EYE] Starting prediction loop...');
         this.isActive = true;
+        this.webcamRunning = true;
+        this.predictWebcam();
     }
 
     stop() {
         this.isActive = false;
-        if (this.camera) {
-            this.camera.stop();
-        }
+        this.webcamRunning = false;
         if (this.videoElement && this.videoElement.srcObject) {
             this.videoElement.srcObject.getTracks().forEach(track => track.stop());
         }
@@ -568,6 +489,8 @@ class EyeDirectionTracker {
 // =============================================================================
 
 function handleDirectionDetection(direction) {
+    let gazeIndicator = document.getElementById('gazeIndicator');
+
     // No direction detected
     if (!direction) {
         // If we're currently holding a direction (timer is running), be more tolerant
@@ -585,7 +508,7 @@ function handleDirectionDetection(direction) {
         currentDirection = null;
         lastStableDirection = null;
         directionStabilityCounter = 0;
-        gazeIndicator.textContent = '👁️ Eye Tracking Active';
+        if (gazeIndicator) gazeIndicator.textContent = '👁️ Eye Tracking Active';
         return;
     }
 
@@ -625,7 +548,8 @@ function handleDirectionDetection(direction) {
         'right': '➡️',
         'up': '⬆️'
     };
-    gazeIndicator.textContent = `${directionEmoji[direction]} Hold position...`;
+    gazeIndicator = document.getElementById('gazeIndicator');
+    if (gazeIndicator) gazeIndicator.textContent = `${directionEmoji[direction]} Hold position...`;
 
     // Start hold timer
     directionHoldTimer = setTimeout(() => {
@@ -634,10 +558,13 @@ function handleDirectionDetection(direction) {
         currentDirection = null;
         lastStableDirection = null;
         directionStabilityCounter = 0;
-        gazeIndicator.textContent = '✓ Action executed!';
-        setTimeout(() => {
-            gazeIndicator.textContent = '👁️ Eye Tracking Active';
-        }, 500);
+        gazeIndicator = document.getElementById('gazeIndicator');
+        if (gazeIndicator) {
+            gazeIndicator.textContent = '✓ Action executed!';
+            setTimeout(() => {
+                gazeIndicator.textContent = '👁️ Eye Tracking Active';
+            }, 500);
+        }
     }, EYE_DETECTION_CONFIG.HOLD_DURATION);
 }
 
@@ -668,3 +595,9 @@ async function initializeEyeTracking() {
         console.log('[EYE] Falling back to keyboard controls');
     }
 }
+
+// Make functions available globally
+window.EyeDirectionTracker = EyeDirectionTracker;
+window.initializeEyeTracking = initializeEyeTracking;
+window.handleDirectionDetection = handleDirectionDetection;
+window.executeDirectionAction = executeDirectionAction;

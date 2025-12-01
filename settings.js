@@ -21,30 +21,18 @@ function initializeSettingsPanel() {
     });
 
     // Setup all sliders
-    setupSlider('verticalThreshold', 'verticalValue', 'VERTICAL_THRESHOLD', (val) => val.toFixed(2));
-    setupSlider('horizontalThreshold', 'horizontalValue', 'HORIZONTAL_THRESHOLD', (val) => val.toFixed(2));
+    setupSlider('upThreshold', 'upValue', 'UP_THRESHOLD', (val) => val.toFixed(2));
+    setupSlider('downThreshold', 'downValue', 'DOWN_THRESHOLD', (val) => val.toFixed(2));
+    setupSlider('leftThreshold', 'leftValue', 'LEFT_THRESHOLD', (val) => val.toFixed(2));
+    setupSlider('rightThreshold', 'rightValue', 'RIGHT_THRESHOLD', (val) => val.toFixed(2));
     setupSlider('holdDuration', 'holdValue', 'HOLD_DURATION', (val) => Math.round(val));
     setupSlider('stabilityFrames', 'stabilityValue', 'STABILITY_FRAMES', (val) => Math.round(val));
     setupSlider('smoothingFactor', 'smoothingValue', 'SMOOTHING_FACTOR', (val) => val.toFixed(2));
-    setupSlider('headCompensation', 'headValue', 'HEAD_COMPENSATION', (val) => val.toFixed(2));
 
     // Reset button
     resetBtn.addEventListener('click', () => {
         if (confirm('Reset all settings to defaults?')) {
             resetToDefaults();
-        }
-    });
-
-    // Camera view toggle
-    const cameraViewToggle = document.getElementById('cameraViewToggle');
-    const videoPreview = document.getElementById('videoPreview');
-    cameraViewToggle.addEventListener('change', (e) => {
-        if (e.target.checked) {
-            videoPreview.style.display = 'block';
-            console.log('[SETTINGS] Camera view enabled');
-        } else {
-            videoPreview.style.display = 'none';
-            console.log('[SETTINGS] Camera view disabled');
         }
     });
 
@@ -94,11 +82,17 @@ function setupSlider(sliderId, valueId, configKey, formatter) {
 
 // Update all sliders from current configuration
 function updateSlidersFromConfig() {
-    document.getElementById('verticalThreshold').value = EYE_DETECTION_CONFIG.VERTICAL_THRESHOLD;
-    document.getElementById('verticalValue').textContent = EYE_DETECTION_CONFIG.VERTICAL_THRESHOLD.toFixed(2);
+    document.getElementById('upThreshold').value = EYE_DETECTION_CONFIG.UP_THRESHOLD;
+    document.getElementById('upValue').textContent = EYE_DETECTION_CONFIG.UP_THRESHOLD.toFixed(2);
 
-    document.getElementById('horizontalThreshold').value = EYE_DETECTION_CONFIG.HORIZONTAL_THRESHOLD;
-    document.getElementById('horizontalValue').textContent = EYE_DETECTION_CONFIG.HORIZONTAL_THRESHOLD.toFixed(2);
+    document.getElementById('downThreshold').value = EYE_DETECTION_CONFIG.DOWN_THRESHOLD;
+    document.getElementById('downValue').textContent = EYE_DETECTION_CONFIG.DOWN_THRESHOLD.toFixed(2);
+
+    document.getElementById('leftThreshold').value = EYE_DETECTION_CONFIG.LEFT_THRESHOLD;
+    document.getElementById('leftValue').textContent = EYE_DETECTION_CONFIG.LEFT_THRESHOLD.toFixed(2);
+
+    document.getElementById('rightThreshold').value = EYE_DETECTION_CONFIG.RIGHT_THRESHOLD;
+    document.getElementById('rightValue').textContent = EYE_DETECTION_CONFIG.RIGHT_THRESHOLD.toFixed(2);
 
     document.getElementById('holdDuration').value = EYE_DETECTION_CONFIG.HOLD_DURATION;
     document.getElementById('holdValue').textContent = Math.round(EYE_DETECTION_CONFIG.HOLD_DURATION);
@@ -108,19 +102,17 @@ function updateSlidersFromConfig() {
 
     document.getElementById('smoothingFactor').value = EYE_DETECTION_CONFIG.SMOOTHING_FACTOR;
     document.getElementById('smoothingValue').textContent = EYE_DETECTION_CONFIG.SMOOTHING_FACTOR.toFixed(2);
-
-    document.getElementById('headCompensation').value = EYE_DETECTION_CONFIG.HEAD_COMPENSATION;
-    document.getElementById('headValue').textContent = EYE_DETECTION_CONFIG.HEAD_COMPENSATION.toFixed(2);
 }
 
 // Reset all settings to defaults
 function resetToDefaults() {
-    EYE_DETECTION_CONFIG.VERTICAL_THRESHOLD = DEFAULT_CONFIG.VERTICAL_THRESHOLD;
-    EYE_DETECTION_CONFIG.HORIZONTAL_THRESHOLD = DEFAULT_CONFIG.HORIZONTAL_THRESHOLD;
+    EYE_DETECTION_CONFIG.UP_THRESHOLD = DEFAULT_CONFIG.UP_THRESHOLD;
+    EYE_DETECTION_CONFIG.DOWN_THRESHOLD = DEFAULT_CONFIG.DOWN_THRESHOLD;
+    EYE_DETECTION_CONFIG.LEFT_THRESHOLD = DEFAULT_CONFIG.LEFT_THRESHOLD;
+    EYE_DETECTION_CONFIG.RIGHT_THRESHOLD = DEFAULT_CONFIG.RIGHT_THRESHOLD;
     EYE_DETECTION_CONFIG.HOLD_DURATION = DEFAULT_CONFIG.HOLD_DURATION;
     EYE_DETECTION_CONFIG.STABILITY_FRAMES = DEFAULT_CONFIG.STABILITY_FRAMES;
     EYE_DETECTION_CONFIG.SMOOTHING_FACTOR = DEFAULT_CONFIG.SMOOTHING_FACTOR;
-    EYE_DETECTION_CONFIG.HEAD_COMPENSATION = DEFAULT_CONFIG.HEAD_COMPENSATION;
     EYE_DETECTION_CONFIG.SOUND_ENABLED = DEFAULT_CONFIG.SOUND_ENABLED;
 
     updateSlidersFromConfig();
@@ -140,20 +132,19 @@ function logCurrentEyeTrackingValues() {
     console.log('\n========================================');
     console.log('EYE TRACKING CONFIGURATION VALUES');
     console.log('========================================');
-    console.log('Vertical Threshold (UP):', EYE_DETECTION_CONFIG.VERTICAL_THRESHOLD);
-    console.log('Horizontal Threshold (LEFT/RIGHT):', EYE_DETECTION_CONFIG.HORIZONTAL_THRESHOLD);
+    console.log('Up Threshold:', EYE_DETECTION_CONFIG.UP_THRESHOLD);
+    console.log('Down Threshold:', EYE_DETECTION_CONFIG.DOWN_THRESHOLD);
+    console.log('Left Threshold:', EYE_DETECTION_CONFIG.LEFT_THRESHOLD);
+    console.log('Right Threshold:', EYE_DETECTION_CONFIG.RIGHT_THRESHOLD);
     console.log('Hold Duration (ms):', EYE_DETECTION_CONFIG.HOLD_DURATION);
     console.log('Stability Frames:', EYE_DETECTION_CONFIG.STABILITY_FRAMES);
     console.log('Smoothing Factor:', EYE_DETECTION_CONFIG.SMOOTHING_FACTOR);
-    console.log('Head Compensation:', EYE_DETECTION_CONFIG.HEAD_COMPENSATION);
     console.log('Debug Mode:', EYE_DETECTION_CONFIG.DEBUG_MODE);
 
     // Log current eye tracking state if available
     if (typeof eyeTracker !== 'undefined' && eyeTracker) {
         console.log('\n--- LIVE EYE TRACKING STATE ---');
-        console.log('Smoothed Left Iris:', eyeTracker.smoothedLeftIris);
-        console.log('Smoothed Right Iris:', eyeTracker.smoothedRightIris);
-        console.log('Smoothed Head Y:', eyeTracker.smoothedHeadY);
+        console.log('Smoothed Blend Shapes:', eyeTracker.smoothedBlendShapes);
         console.log('Current Direction:', currentDirection || 'none');
         console.log('Last Stable Direction:', lastStableDirection || 'none');
         console.log('Direction Stability Counter:', directionStabilityCounter || 0);
