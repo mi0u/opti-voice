@@ -3,9 +3,55 @@
 // =============================================================================
 
 let settingsPanelVisible = false;
+const SETTINGS_STORAGE_KEY = 'eyeTrackingSettings';
+
+// Load settings from localStorage
+function loadSettingsFromStorage() {
+    try {
+        const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        if (stored) {
+            const settings = JSON.parse(stored);
+            // Apply stored settings to config
+            Object.keys(settings).forEach(key => {
+                if (EYE_DETECTION_CONFIG.hasOwnProperty(key)) {
+                    EYE_DETECTION_CONFIG[key] = settings[key];
+                }
+            });
+            console.log('[SETTINGS] Loaded settings from localStorage:', settings);
+            return true;
+        }
+    } catch (error) {
+        console.error('[SETTINGS] Error loading settings from localStorage:', error);
+    }
+    console.log('[SETTINGS] No stored settings found, using defaults');
+    return false;
+}
+
+// Save settings to localStorage
+function saveSettingsToStorage() {
+    try {
+        const settings = {
+            UP_THRESHOLD: EYE_DETECTION_CONFIG.UP_THRESHOLD,
+            DOWN_THRESHOLD: EYE_DETECTION_CONFIG.DOWN_THRESHOLD,
+            LEFT_THRESHOLD: EYE_DETECTION_CONFIG.LEFT_THRESHOLD,
+            RIGHT_THRESHOLD: EYE_DETECTION_CONFIG.RIGHT_THRESHOLD,
+            HOLD_DURATION: EYE_DETECTION_CONFIG.HOLD_DURATION,
+            STABILITY_FRAMES: EYE_DETECTION_CONFIG.STABILITY_FRAMES,
+            SMOOTHING_FACTOR: EYE_DETECTION_CONFIG.SMOOTHING_FACTOR,
+            SOUND_ENABLED: EYE_DETECTION_CONFIG.SOUND_ENABLED
+        };
+        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+        console.log('[SETTINGS] Saved settings to localStorage');
+    } catch (error) {
+        console.error('[SETTINGS] Error saving settings to localStorage:', error);
+    }
+}
 
 // Initialize settings panel
 function initializeSettingsPanel() {
+    // Load settings from storage first, before initializing UI
+    loadSettingsFromStorage();
+
     const settingsToggleBtn = document.getElementById('settingsToggleBtn');
     const settingsPanel = document.getElementById('settingsPanel');
     const resetBtn = document.getElementById('resetBtn');
@@ -53,10 +99,11 @@ function initializeSettingsPanel() {
     const soundToggle = document.getElementById('soundToggle');
     soundToggle.addEventListener('change', (e) => {
         EYE_DETECTION_CONFIG.SOUND_ENABLED = e.target.checked;
+        saveSettingsToStorage(); // Save when sound toggle changes
         console.log('[SETTINGS] Sound', e.target.checked ? 'enabled' : 'disabled');
     });
 
-    // Initialize slider values from current config
+    // Initialize slider values from current config (loaded from storage or defaults)
     updateSlidersFromConfig();
 
     console.log('[SETTINGS] Settings panel initialized');
@@ -75,6 +122,9 @@ function setupSlider(sliderId, valueId, configKey, formatter) {
 
         // Update configuration
         EYE_DETECTION_CONFIG[configKey] = value;
+
+        // Save to localStorage
+        saveSettingsToStorage();
 
         console.log(`[SETTINGS] ${configKey} updated to ${value}`);
     });
@@ -102,6 +152,9 @@ function updateSlidersFromConfig() {
 
     document.getElementById('smoothingFactor').value = EYE_DETECTION_CONFIG.SMOOTHING_FACTOR;
     document.getElementById('smoothingValue').textContent = EYE_DETECTION_CONFIG.SMOOTHING_FACTOR.toFixed(2);
+
+    // Update sound toggle from config
+    document.getElementById('soundToggle').checked = EYE_DETECTION_CONFIG.SOUND_ENABLED;
 }
 
 // Reset all settings to defaults
@@ -117,10 +170,11 @@ function resetToDefaults() {
 
     updateSlidersFromConfig();
 
-    // Reset sound toggle checkbox
-    document.getElementById('soundToggle').checked = DEFAULT_CONFIG.SOUND_ENABLED;
+    // Clear localStorage and save defaults
+    localStorage.removeItem(SETTINGS_STORAGE_KEY);
+    saveSettingsToStorage();
 
-    console.log('[SETTINGS] All settings reset to defaults');
+    console.log('[SETTINGS] All settings reset to defaults and saved');
     console.log('[SETTINGS] Current config:', EYE_DETECTION_CONFIG);
 }
 
