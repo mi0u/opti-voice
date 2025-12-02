@@ -546,7 +546,8 @@ function handleDirectionDetection(direction) {
     const directionEmoji = {
         'left': '⬅️',
         'right': '➡️',
-        'up': '⬆️'
+        'up': '⬆️',
+        'down': '⬇️'
     };
     gazeIndicator = document.getElementById('gazeIndicator');
     if (gazeIndicator) gazeIndicator.textContent = `${directionEmoji[direction]} Hold position...`;
@@ -576,6 +577,8 @@ function executeDirectionAction(direction) {
         selectColumn('right');
     } else if (direction === 'up') {
         toggleSpecialMenu();
+    } else if (direction === 'down') {
+        executeAction('speak', null, null);
     }
 }
 

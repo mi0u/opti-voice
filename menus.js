@@ -5,19 +5,18 @@
 // Lowercase Greek alphabet + common functions
 const mainMenu = [
     'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ',
-    'ν', 'ξ', 'ο', 'π', 'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω'
+    'ν', 'ξ', 'ο', 'π', 'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω',
+    { label: '⌫ Backspace', action: 'backspace' }, { label: '␣ Space', action: 'space' }
 ];
 
 const specialMenu = [
+    { label: '🔊 Speak', action: 'speak' },
     { label: '⌫ Delete Word', action: 'delete_word' },
     { label: '⌫⌫ Delete All', action: 'delete_all' },
     { label: '← Undo', action: 'undo' },
-    { label: '␣ Space', action: 'space' },
-    { label: '⌫ Backspace', action: 'backspace' },
     { label: '↵ New Line', action: 'newline' },
     { label: '📋 Copy', action: 'copy' },
     { label: '📄 Paste', action: 'paste' },
-    { label: '🔊 Speak', action: 'speak' },
     { label: '🔍 Google Search', action: 'google_search' },
     { label: '➕ Add to Custom', action: 'add_custom' },
     { label: '🗑️ Delete Custom', action: 'manage_custom' },

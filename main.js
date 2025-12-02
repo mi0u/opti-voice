@@ -34,7 +34,7 @@ const videoPreview = document.getElementById('videoPreview');
 
 // Keyboard event handler (fallback)
 document.addEventListener('keydown', (e) => {
-    if (isEyeTrackingActive) return;
+    //if (isEyeTrackingActive) return;
 
     if (e.key === 'ArrowLeft') {
         e.preventDefault();
@@ -45,6 +45,9 @@ document.addEventListener('keydown', (e) => {
     } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         toggleSpecialMenu();
+    } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        executeAction('speak', null, null);
     }
 });
 

@@ -131,18 +131,36 @@ function executeAction(action, data, itemData) {
             break;
         case 'speak':
             if (textArea.value && 'speechSynthesis' in window) {
-                // Cancel any ongoing speech
                 window.speechSynthesis.cancel();
 
                 const utterance = new SpeechSynthesisUtterance(textArea.value);
-                utterance.lang = 'el-GR'; // Greek language
-                utterance.rate = 0.9; // Slightly slower for clarity
-                utterance.pitch = 1;
-                utterance.volume = 1;
 
-                window.speechSynthesis.speak(utterance);
-            } else {
-                console.error('Text-to-speech not supported');
+                // Wait for voices to load and select best Greek voice
+                const loadVoices = () => {
+                    const voices = window.speechSynthesis.getVoices();
+                    const greekVoices = voices.filter(v => v.lang.startsWith('el'));
+
+                    // Prefer neural/premium voices (Google, Microsoft Neural)
+                    const preferredVoice = greekVoices.find(v =>
+                        v.name.includes('Neural') ||
+                        v.name.includes('Premium') ||
+                        v.name.includes('Google')
+                    ) || greekVoices[0];
+
+                    if (preferredVoice) utterance.voice = preferredVoice;
+                    utterance.lang = 'el-GR';
+                    utterance.rate = 0.8;
+                    utterance.pitch = 1;
+                    utterance.volume = 1;
+
+                    window.speechSynthesis.speak(utterance);
+                };
+
+                if (window.speechSynthesis.getVoices().length) {
+                    loadVoices();
+                } else {
+                    window.speechSynthesis.onvoiceschanged = loadVoices;
+                }
             }
             break;
         case 'add_custom':
