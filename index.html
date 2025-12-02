@@ -6,8 +6,24 @@
     <title>Three-Signal Communication</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="settings-panel.css">
+    <link rel="stylesheet" href="calibration.css">
 </head>
 <body>
+    <!-- Calibration Screen -->
+    <div class="calibration-screen" id="calibrationScreen" style="display: none;">
+        <div class="calibration-container">
+            <h1 id="calibrationTitle">Βαθμονόμηση Eye Tracking</h1>
+            <div class="calibration-instructions" id="calibrationInstructions">
+                <p id="calibrationText">Καλώς ήρθατε! Πρέπει να βαθμονομήσουμε το σύστημα.</p>
+            </div>
+            <div class="calibration-arrow" id="calibrationArrow" style="display: none;">
+                <span id="arrowIcon">↑</span>
+            </div>
+            <div class="calibration-status" id="calibrationStatus"></div>
+            <button class="calibration-btn" id="calibrationBtn">Έναρξη Βαθμονόμησης ΠΑΝΩ</button>
+        </div>
+    </div>
+
     <div class="gaze-indicator" id="gazeIndicator">🎯 Initializing...</div>
     <video class="video-preview" id="videoPreview" autoplay playsinline></video>
     <canvas class="eye-visualization" id="eyeVisualization" width="400" height="200"></canvas>
@@ -90,6 +106,7 @@
         </div>
 
         <button class="reset-btn" id="resetBtn">Reset to Defaults</button>
+        <button class="reset-btn" id="recalibrateBtn" style="margin-top: 10px; background: #2196F3;">Re-calibrate Thresholds</button>
         <small class="help-text">Press 'O' key to log current eye tracking values to console</small>
     </div>
 

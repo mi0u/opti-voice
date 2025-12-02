@@ -24,6 +24,9 @@ let directionHoldTimer = null;
 let directionStabilityCounter = 0;
 let lastStableDirection = null;
 
+// Make eyeTracker globally available for settings panel
+window.eyeTracker = eyeTracker;
+
 // DOM elements
 const leftColumn = document.getElementById('leftColumn');
 const rightColumn = document.getElementById('rightColumn');
@@ -58,7 +61,7 @@ renderMenu();
 // Start eye tracking when page loads
 window.addEventListener('load', () => {
     setTimeout(() => {
-        initializeEyeTracking();
+        initializeEyeTrackingWithCalibration();
     }, 500);
 });
 

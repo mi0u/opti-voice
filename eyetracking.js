@@ -50,6 +50,9 @@ class EyeDirectionTracker {
         this.lastVideoTime = -1;
         this.webcamRunning = false;
 
+        // Last blend shapes for calibration
+        this.lastBlendShapes = null;
+
         // Smoothed blend shape values
         this.smoothedBlendShapes = {
             eyeLookUpLeft: 0,
@@ -61,6 +64,9 @@ class EyeDirectionTracker {
             eyeLookOutLeft: 0,
             eyeLookOutRight: 0
         };
+
+        // Flag to disable direction detection during calibration
+        this.isCalibrating = false;
 
         // Canvas for visualization
         this.canvas = null;
@@ -260,10 +266,15 @@ class EyeDirectionTracker {
                 this.callback(null);
             }
             this.clearCanvas();
+            this.lastBlendShapes = null;
             return;
         }
 
         const blendShapes = results.faceBlendshapes[0].categories;
+
+        // Store blend shapes for calibration access
+        this.lastBlendShapes = blendShapes;
+
         const direction = this.calculateEyeDirection(blendShapes);
 
         // Draw visualization (with error handling)
@@ -273,7 +284,8 @@ class EyeDirectionTracker {
             console.error('[EYE] Draw error:', drawError);
         }
 
-        if (this.callback) {
+        // Only trigger direction events when not calibrating
+        if (this.callback && !this.isCalibrating) {
             this.callback(direction);
         }
     }
@@ -485,6 +497,238 @@ class EyeDirectionTracker {
 }
 
 // =============================================================================
+// CALIBRATION SYSTEM
+// =============================================================================
+
+class EyeTrackingCalibration {
+    constructor(eyeTracker) {
+        this.eyeTracker = eyeTracker;
+        this.currentStep = 0;
+        this.calibrationData = {
+            up: [],
+            down: [],
+            left: [],
+            right: []
+        };
+
+        this.steps = [
+            {
+                direction: 'up',
+                buttonText: 'Έναρξη Βαθμονόμησης ΠΑΝΩ',
+                instructionText: 'Όταν δείτε το βέλος ↑, κοιτάξτε ΠΑΝΩ (έξω από την οθόνη) μέχρι να ακούσετε τον ήχο.',
+                arrow: '↑',
+                blendShapes: ['eyeLookUpLeft', 'eyeLookUpRight']
+            },
+            {
+                direction: 'down',
+                buttonText: 'Έναρξη Βαθμονόμησης ΚΑΤΩ',
+                instructionText: 'Όταν δείτε το βέλος ↓, κοιτάξτε ΚΑΤΩ μέχρι να ακούσετε τον ήχο.',
+                arrow: '↓',
+                blendShapes: ['eyeLookDownLeft', 'eyeLookDownRight']
+            },
+            {
+                direction: 'left',
+                buttonText: 'Έναρξη Βαθμονόμησης ΑΡΙΣΤΕΡΑ',
+                instructionText: 'Όταν δείτε το βέλος ←, κοιτάξτε ΑΡΙΣΤΕΡΑ μέχρι να ακούσετε τον ήχο.',
+                arrow: '←',
+                blendShapes: ['eyeLookOutLeft', 'eyeLookInRight']
+            },
+            {
+                direction: 'right',
+                buttonText: 'Έναρξη Βαθμονόμησης ΔΕΞΙΑ',
+                instructionText: 'Όταν δείτε το βέλος →, κοιτάξτε ΔΕΞΙΑ μέχρι να ακούσετε τον ήχο.',
+                arrow: '→',
+                blendShapes: ['eyeLookInLeft', 'eyeLookOutRight']
+            }
+        ];
+    }
+
+    start() {
+        console.log('[CALIBRATION] Starting calibration...');
+        this.currentStep = 0;
+
+        // Disable direction event triggering during calibration
+        if (this.eyeTracker) {
+            this.eyeTracker.isCalibrating = true;
+        }
+
+        this.showCalibrationScreen();
+        this.updateUI();
+    }
+
+    showCalibrationScreen() {
+        const calibrationScreen = document.getElementById('calibrationScreen');
+        if (calibrationScreen) {
+            calibrationScreen.style.display = 'flex';
+        }
+    }
+
+    hideCalibrationScreen() {
+        const calibrationScreen = document.getElementById('calibrationScreen');
+        if (calibrationScreen) {
+            calibrationScreen.style.display = 'none';
+        }
+    }
+
+    updateUI() {
+        const step = this.steps[this.currentStep];
+        const btn = document.getElementById('calibrationBtn');
+        const text = document.getElementById('calibrationText');
+        const arrow = document.getElementById('calibrationArrow');
+        const arrowIcon = document.getElementById('arrowIcon');
+        const status = document.getElementById('calibrationStatus');
+
+        if (btn) btn.textContent = step.buttonText;
+        if (text) text.textContent = step.instructionText;
+        if (arrowIcon) arrowIcon.textContent = step.arrow;
+        if (arrow) arrow.style.display = 'none';
+        if (status) status.textContent = '';
+    }
+
+    async startDirectionCalibration() {
+        const step = this.steps[this.currentStep];
+        const btn = document.getElementById('calibrationBtn');
+        const arrow = document.getElementById('calibrationArrow');
+        const status = document.getElementById('calibrationStatus');
+
+        if (btn) btn.disabled = true;
+        if (status) status.textContent = 'Προετοιμασία...';
+
+        // Wait 2 seconds
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        if (arrow) arrow.style.display = 'block';
+        if (status) status.textContent = `Κοιτάξτε ${step.direction === 'up' ? 'ΠΑΝΩ' : step.direction === 'down' ? 'ΚΑΤΩ' : step.direction === 'left' ? 'ΑΡΙΣΤΕΡΑ' : 'ΔΕΞΙΑ'}!`;
+
+        // Collect samples for about 1.5 seconds (approximately 45 frames at 30fps)
+        const samples = [];
+        const startTime = Date.now();
+        const collectDuration = 1500; // 1.5 seconds
+
+        const collectFrame = () => {
+            if (Date.now() - startTime < collectDuration) {
+                // Get current blend shape values
+                const blendShapeValues = this.getBlendShapeValues(step.blendShapes);
+                if (blendShapeValues.length > 0) {
+                    samples.push(blendShapeValues);
+                }
+                requestAnimationFrame(collectFrame);
+            } else {
+                this.finishDirectionCalibration(step.direction, samples);
+            }
+        };
+
+        collectFrame();
+    }
+
+    getBlendShapeValues(blendShapeNames) {
+        // This will be called during active tracking
+        // We need to access the current blend shapes from the tracker
+        if (!this.eyeTracker || !this.eyeTracker.lastBlendShapes) {
+            return [];
+        }
+
+        const values = [];
+        for (const name of blendShapeNames) {
+            const shape = this.eyeTracker.lastBlendShapes.find(
+                s => s.categoryName === name || s.displayName === name
+            );
+            if (shape) {
+                values.push(shape.score);
+            }
+        }
+        return values;
+    }
+
+    finishDirectionCalibration(direction, samples) {
+        const status = document.getElementById('calibrationStatus');
+
+        if (samples.length === 0) {
+            console.warn(`[CALIBRATION] No samples collected for ${direction}`);
+            if (status) status.textContent = 'Σφάλμα! Δοκιμάστε ξανά.';
+            const btn = document.getElementById('calibrationBtn');
+            if (btn) btn.disabled = false;
+            return;
+        }
+
+        // Calculate mean of all collected values
+        const allValues = samples.flat();
+        const mean = allValues.reduce((sum, val) => sum + val, 0) / allValues.length;
+
+        // Set threshold at 80% of mean
+        const threshold = mean * 0.8;
+
+        console.log(`[CALIBRATION] ${direction}: collected ${samples.length} samples, mean=${mean.toFixed(3)}, threshold=${threshold.toFixed(3)}`);
+
+        this.calibrationData[direction] = {
+            samples: samples.length,
+            mean: mean,
+            threshold: threshold
+        };
+
+        // Play beep
+        playDetectionTone();
+
+        if (status) status.textContent = `✓ Ολοκληρώθηκε! (Κατώφλι: ${threshold.toFixed(2)})`;
+
+        // Move to next step
+        setTimeout(() => {
+            this.currentStep++;
+            if (this.currentStep < this.steps.length) {
+                this.updateUI();
+                const btn = document.getElementById('calibrationBtn');
+                if (btn) btn.disabled = false;
+            } else {
+                this.completeCalibration();
+            }
+        }, 1000);
+    }
+
+    completeCalibration() {
+        console.log('[CALIBRATION] Calibration complete:', this.calibrationData);
+
+        // Apply calibrated thresholds to config
+        if (this.calibrationData.up.threshold) {
+            EYE_DETECTION_CONFIG.UP_THRESHOLD = this.calibrationData.up.threshold;
+        }
+        if (this.calibrationData.down.threshold) {
+            EYE_DETECTION_CONFIG.DOWN_THRESHOLD = this.calibrationData.down.threshold;
+        }
+        if (this.calibrationData.left.threshold) {
+            EYE_DETECTION_CONFIG.LEFT_THRESHOLD = this.calibrationData.left.threshold;
+        }
+        if (this.calibrationData.right.threshold) {
+            EYE_DETECTION_CONFIG.RIGHT_THRESHOLD = this.calibrationData.right.threshold;
+        }
+
+        // Save to localStorage
+        if (window.saveSettingsToStorage) {
+            window.saveSettingsToStorage();
+        }
+
+        // Update settings panel UI to show new thresholds
+        if (window.updateSlidersFromConfig) {
+            window.updateSlidersFromConfig();
+        }
+
+        const status = document.getElementById('calibrationStatus');
+        if (status) status.textContent = '✓ Βαθμονόμηση Ολοκληρώθηκε!';
+
+        // Hide calibration screen and start app
+        setTimeout(() => {
+            this.hideCalibrationScreen();
+
+            // Re-enable direction event triggering after calibration
+            if (this.eyeTracker) {
+                this.eyeTracker.isCalibrating = false;
+            }
+
+            // The app will continue with the new thresholds
+        }, 2000);
+    }
+}
+
+// =============================================================================
 // DIRECTION HANDLING WITH STABILITY CHECK
 // =============================================================================
 
@@ -586,6 +830,7 @@ function executeDirectionAction(direction) {
 async function initializeEyeTracking() {
     console.log('[EYE] Starting eye tracking initialization...');
     eyeTracker = new EyeDirectionTracker();
+    window.eyeTracker = eyeTracker; // Make globally available
     const success = await eyeTracker.initialize();
 
     if (success) {
@@ -597,10 +842,49 @@ async function initializeEyeTracking() {
         isEyeTrackingActive = false;
         console.log('[EYE] Falling back to keyboard controls');
     }
+
+    return success;
+}
+
+// Initialize eye tracking with calibration check
+async function initializeEyeTrackingWithCalibration() {
+    console.log('[EYE] Checking for calibration...');
+
+    // Check if settings exist in localStorage
+    const hasSettings = localStorage.getItem('eyeTrackingSettings') !== null;
+
+    if (!hasSettings) {
+        console.log('[EYE] No settings found, starting calibration...');
+
+        // Initialize eye tracker first
+        const success = await initializeEyeTracking();
+
+        if (success) {
+            // Start calibration
+            const calibration = new EyeTrackingCalibration(eyeTracker);
+
+            // Setup calibration button handler
+            const calibrationBtn = document.getElementById('calibrationBtn');
+            if (calibrationBtn) {
+                calibrationBtn.addEventListener('click', () => {
+                    calibration.startDirectionCalibration();
+                });
+            }
+
+            calibration.start();
+        } else {
+            console.error('[EYE] Failed to initialize eye tracking for calibration');
+        }
+    } else {
+        console.log('[EYE] Settings found, skipping calibration');
+        await initializeEyeTracking();
+    }
 }
 
 // Make functions available globally
 window.EyeDirectionTracker = EyeDirectionTracker;
+window.EyeTrackingCalibration = EyeTrackingCalibration;
 window.initializeEyeTracking = initializeEyeTracking;
+window.initializeEyeTrackingWithCalibration = initializeEyeTrackingWithCalibration;
 window.handleDirectionDetection = handleDirectionDetection;
 window.executeDirectionAction = executeDirectionAction;

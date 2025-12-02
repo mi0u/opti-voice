@@ -82,7 +82,39 @@ function initializeSettingsPanel() {
         }
     });
 
-    // Eye visualization toggle
+    // Recalibrate button
+    const recalibrateBtn = document.getElementById('recalibrateBtn');
+    if (recalibrateBtn) {
+        recalibrateBtn.addEventListener('click', () => {
+            if (confirm('Start calibration process? This will guide you through re-calibrating all direction thresholds.')) {
+                // Close settings panel
+                settingsPanelVisible = false;
+                settingsPanel.classList.remove('visible');
+
+                // Trigger calibration
+                if (window.eyeTracker && window.EyeTrackingCalibration) {
+                    const calibration = new window.EyeTrackingCalibration(window.eyeTracker);
+
+                    // Setup calibration button handler
+                    const calibrationBtn = document.getElementById('calibrationBtn');
+                    if (calibrationBtn) {
+                        // Remove old listener by cloning
+                        const newBtn = calibrationBtn.cloneNode(true);
+                        calibrationBtn.parentNode.replaceChild(newBtn, calibrationBtn);
+
+                        newBtn.addEventListener('click', () => {
+                            calibration.startDirectionCalibration();
+                        });
+                    }
+
+                    calibration.start();
+                } else {
+                    alert('Eye tracker not initialized. Please wait for the camera to start.');
+                    console.error('[CALIBRATION] Eye tracker not available:', window.eyeTracker);
+                }
+            }
+        });
+    }    // Eye visualization toggle
     const eyeViewToggle = document.getElementById('eyeViewToggle');
     const eyeVisualization = document.getElementById('eyeVisualization');
     eyeViewToggle.addEventListener('change', (e) => {
@@ -213,6 +245,11 @@ document.addEventListener('keydown', (event) => {
         logCurrentEyeTrackingValues();
     }
 });
+
+// Make settings functions globally available
+window.loadSettingsFromStorage = loadSettingsFromStorage;
+window.saveSettingsToStorage = saveSettingsToStorage;
+window.updateSlidersFromConfig = updateSlidersFromConfig;
 
 // Initialize settings panel when DOM is loaded
 if (document.readyState === 'loading') {
