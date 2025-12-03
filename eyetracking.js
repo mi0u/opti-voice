@@ -547,6 +547,14 @@ class EyeTrackingCalibration {
         console.log('[CALIBRATION] Starting calibration...');
         this.currentStep = 0;
 
+        // Reset calibration data
+        this.calibrationData = {
+            up: [],
+            down: [],
+            left: [],
+            right: []
+        };
+
         // Disable direction event triggering during calibration
         if (this.eyeTracker) {
             this.eyeTracker.isCalibrating = true;
@@ -578,7 +586,10 @@ class EyeTrackingCalibration {
         const arrowIcon = document.getElementById('arrowIcon');
         const status = document.getElementById('calibrationStatus');
 
-        if (btn) btn.textContent = step.buttonText;
+        if (btn) {
+            btn.textContent = step.buttonText;
+            btn.disabled = false; // Add this line to ensure button is enabled
+        }
         if (text) text.textContent = step.instructionText;
         if (arrowIcon) arrowIcon.textContent = step.arrow;
         if (arrow) arrow.style.display = 'none';
