@@ -856,15 +856,32 @@ function handleDirectionDetection(direction) {
 }
 
 function executeDirectionAction(direction) {
-    console.log(`[EYE] executeDirectionAction: ${direction}`);
     if (direction === 'left') {
-        selectColumn('left');
+        // If viewing a search result, scroll page up
+        if (window.isViewingResult) {
+            scrollResultPage('left');
+        } else {
+            selectColumn('left');
+        }
     } else if (direction === 'right') {
-        selectColumn('right');
+        // If viewing a search result, scroll page down
+        if (window.isViewingResult) {
+            scrollResultPage('right');
+        } else {
+            selectColumn('right');
+        }
     } else if (direction === 'up') {
-        toggleSpecialMenu();
+        // If viewing a search result, return to results
+        if (window.isViewingResult) {
+            closeResultViewer();
+        } else {
+            toggleSpecialMenu();
+        }
     } else if (direction === 'down') {
-        executeAction('speak', null, null);
+        // Down does nothing when viewing results
+        if (!window.isViewingResult) {
+            executeAction('speak', null, null);
+        }
     }
 }
 

@@ -2,6 +2,44 @@
 // MAIN APPLICATION STATE AND INITIALIZATION
 // =============================================================================
 
+// Notification system for non-blocking messages (globally accessible)
+window.showNotification = function(message, duration = 5000) {
+    let notification = document.getElementById('autoNotification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'autoNotification';
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 10px;
+            font-size: 18px;
+            z-index: 10000;
+            max-width: 80%;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            transition: opacity 0.3s ease;
+        `;
+        document.body.appendChild(notification);
+    }
+
+    notification.textContent = message;
+    notification.style.opacity = '1';
+    notification.style.display = 'block';
+
+    // Auto-dismiss after duration
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 300);
+    }, duration);
+};
+
 // Application state
 let currentMenu = [...mainMenu];
 let isSpecialMode = false;
@@ -43,16 +81,34 @@ document.addEventListener('keydown', (e) => {
 
     if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        selectColumn('left');
+        // If viewing a search result, scroll page up
+        if (window.isViewingResult) {
+            scrollResultPage('left');
+        } else {
+            selectColumn('left');
+        }
     } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        selectColumn('right');
+        // If viewing a search result, scroll page down
+        if (window.isViewingResult) {
+            scrollResultPage('right');
+        } else {
+            selectColumn('right');
+        }
     } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        toggleSpecialMenu();
+        // If viewing a search result, return to results
+        if (window.isViewingResult) {
+            closeResultViewer();
+        } else {
+            toggleSpecialMenu();
+        }
     } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        executeAction('speak', null, null);
+        // Down does nothing when viewing results
+        if (!window.isViewingResult) {
+            executeAction('speak', null, null);
+        }
     }
 });
 

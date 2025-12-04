@@ -75,43 +75,45 @@ function initializeSettingsPanel() {
     setupSlider('stabilityFrames', 'stabilityValue', 'STABILITY_FRAMES', (val) => Math.round(val));
     setupSlider('smoothingFactor', 'smoothingValue', 'SMOOTHING_FACTOR', (val) => val.toFixed(2));
 
-    // Reset button
+    // Reset button - auto-reset without confirmation (accessibility)
     resetBtn.addEventListener('click', () => {
-        if (confirm('Reset all settings to defaults?')) {
+        showNotification('Resetting all settings to defaults...', 3000);
+        setTimeout(() => {
             resetToDefaults();
-        }
+            showNotification('Settings reset complete!', 3000);
+        }, 500);
     });
 
     // Recalibrate button
     const recalibrateBtn = document.getElementById('recalibrateBtn');
     if (recalibrateBtn) {
         recalibrateBtn.addEventListener('click', () => {
-            if (confirm('Start calibration process? This will guide you through re-calibrating all direction thresholds.')) {
-                // Close settings panel
-                settingsPanelVisible = false;
-                settingsPanel.classList.remove('visible');
+            showNotification('Starting calibration process...', 3000);
 
-                // Trigger calibration
-                if (window.eyeTracker && window.EyeTrackingCalibration) {
-                    const calibration = new window.EyeTrackingCalibration(window.eyeTracker);
+            // Close settings panel
+            settingsPanelVisible = false;
+            settingsPanel.classList.remove('visible');
 
-                    // Setup calibration button handler
-                    const calibrationBtn = document.getElementById('calibrationBtn');
-                    if (calibrationBtn) {
-                        // Remove old listener by cloning
-                        const newBtn = calibrationBtn.cloneNode(true);
-                        calibrationBtn.parentNode.replaceChild(newBtn, calibrationBtn);
+            // Trigger calibration
+            if (window.eyeTracker && window.EyeTrackingCalibration) {
+                const calibration = new window.EyeTrackingCalibration(window.eyeTracker);
 
-                        newBtn.addEventListener('click', () => {
-                            calibration.startDirectionCalibration();
-                        });
-                    }
+                // Setup calibration button handler
+                const calibrationBtn = document.getElementById('calibrationBtn');
+                if (calibrationBtn) {
+                    // Remove old listener by cloning
+                    const newBtn = calibrationBtn.cloneNode(true);
+                    calibrationBtn.parentNode.replaceChild(newBtn, calibrationBtn);
 
-                    calibration.start();
-                } else {
-                    alert('Eye tracker not initialized. Please wait for the camera to start.');
-                    console.error('[CALIBRATION] Eye tracker not available:', window.eyeTracker);
+                    newBtn.addEventListener('click', () => {
+                        calibration.startDirectionCalibration();
+                    });
                 }
+
+                calibration.start();
+            } else {
+                showNotification('Eye tracker not initialized. Please wait for the camera to start.', 5000);
+                console.error('[CALIBRATION] Eye tracker not available:', window.eyeTracker);
             }
         });
     }    // Eye visualization toggle

@@ -5,7 +5,7 @@
 let currentSearchQuery = '';
 let lastWorkingProxy = 0;
 
-async function performDuckDuckGoSearch(page = 0) {
+async function performDuckDuckGoSearch(page = 0, retryCount = 0) {
     const query = textArea.value.trim();
     if (!query) return;
 
@@ -39,7 +39,7 @@ async function performDuckDuckGoSearch(page = 0) {
             const corsProxy = corsProxies[proxyIndex];
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout (increased from 10)
 
             const response = await fetch(corsProxy + encodeURIComponent(searchUrl), {
                 signal: controller.signal
@@ -60,7 +60,7 @@ async function performDuckDuckGoSearch(page = 0) {
     }
 
     if (!html) {
-        alert('Unable to fetch search results. All CORS proxies are unavailable. Please try again later or check your internet connection.');
+        showNotification('Unable to fetch search results. All CORS proxies are unavailable. Please try again later.', 6000);
         return;
     }
 
@@ -103,7 +103,9 @@ async function performDuckDuckGoSearch(page = 0) {
         if (resultLinks.length === 0) {
             // Try any link inside result containers
             resultLinks = doc.querySelectorAll('.result a[href^="http"], .web-result a[href^="http"]');
-        }        const resultSnippets = doc.querySelectorAll('.result__snippet, .result-snippet');
+        }
+
+        const resultSnippets = doc.querySelectorAll('.result__snippet, .result-snippet');
         const resultImages = doc.querySelectorAll('.result__image img, img.result__icon__img, .result img');
 
         console.log(`Found ${resultLinks.length} result links in HTML`);
@@ -177,11 +179,30 @@ async function performDuckDuckGoSearch(page = 0) {
             menuStack = [];
             renderMenu();
         } else {
-            alert('No search results found. Please try a different query.');
+            // Retry logic: if we got 0 results and haven't retried 3 times yet
+            if (retryCount < 3) {
+                console.log(`No results found, retrying... (attempt ${retryCount + 1}/3)`);
+                // Wait a bit before retrying
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Try again with the next proxy by resetting lastWorkingProxy
+                lastWorkingProxy = (lastWorkingProxy + 1) % corsProxies.length;
+                return performDuckDuckGoSearch(page, retryCount + 1);
+            } else {
+                showNotification('No search results found after 3 attempts. Please try a different query.', 5000);
+            }
         }
     } catch (error) {
         console.error('Search error:', error);
-        alert('Failed to parse search results. Please try again.');
+
+        // Retry on error if we haven't exceeded retry limit
+        if (retryCount < 3) {
+            console.log(`Search error, retrying... (attempt ${retryCount + 1}/3)`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            lastWorkingProxy = (lastWorkingProxy + 1) % corsProxies.length;
+            return performDuckDuckGoSearch(page, retryCount + 1);
+        } else {
+            showNotification('Failed to parse search results after 3 attempts. Please try again.', 5000);
+        }
     }
 }
 
@@ -215,17 +236,146 @@ function previousSearchPage() {
     }
 }
 
-function openSearchResult(url) {
-    const width = 1000;
-    const height = 800;
-    const left = (screen.width - width) / 2;
-    const top = (screen.height - height) / 2;
+async function openSearchResult(url) {
+    const resultViewer = document.getElementById('resultViewer');
+    const resultContent = document.getElementById('resultContent');
+    const resultViewerTitle = document.getElementById('resultViewerTitle');
+    const menuContainer = document.getElementById('menuContainer');
 
-    window.open(
-        url,
-        'SearchResultWindow',
-        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
-    );
+    // Hide menu container to prevent left/right from selecting items
+    if (menuContainer) menuContainer.style.display = 'none';
+
+    // Show the result viewer
+    resultViewer.style.display = 'flex';
+
+    // Set the title to the URL (will be truncated by CSS)
+    resultViewerTitle.textContent = 'Loading...';
+
+    // Show loading message
+    resultContent.innerHTML = '<div style="padding: 40px; text-align: center; font-size: 18px;">Loading page...<br><br>⏳</div>';
+
+    // Fetch the page through CORS proxy and display it directly
+    const corsProxies = [
+        'https://corsproxy.io/?',
+        'https://api.allorigins.win/raw?url=',
+        'https://api.codetabs.com/v1/proxy?quest='
+    ];
+
+    let html = null;
+    let proxyIndex = 0;
+
+    while (proxyIndex < corsProxies.length && !html) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            const response = await fetch(corsProxies[proxyIndex] + encodeURIComponent(url), {
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                html = await response.text();
+            } else {
+                proxyIndex++;
+            }
+        } catch (error) {
+            console.log(`[RESULT] Proxy ${proxyIndex} failed:`, error.message);
+            proxyIndex++;
+        }
+    }
+
+    if (!html) {
+        resultContent.innerHTML = `
+            <div style="padding: 40px; text-align: center;">
+                <h2>⚠️ Unable to load page</h2>
+                <p>All proxies failed. The page may block external access.</p>
+                <p style="margin-top: 20px; font-size: 14px; color: #666;">URL: ${url}</p>
+            </div>`;
+        resultViewerTitle.textContent = 'Error loading page';
+        window.isViewingResult = true;
+        return;
+    }
+
+    // Fix relative URLs in the HTML
+    const baseUrl = new URL(url);
+    const fixedHtml = html
+        .replace(/href="\//g, `href="${baseUrl.origin}/`)
+        .replace(/src="\//g, `src="${baseUrl.origin}/`)
+        .replace(/href='\//g, `href='${baseUrl.origin}/`)
+        .replace(/src='\//g, `src='${baseUrl.origin}/`);
+
+    // Display the HTML content
+    resultContent.innerHTML = fixedHtml;
+    resultViewerTitle.textContent = url;
+
+    // Set a global flag that we're viewing a result
+    window.isViewingResult = true;
+
+    // Store reference to content div for scrolling
+    window.currentResultContent = resultContent;
+    window.currentScrollPosition = 0;
+}
+
+function scrollResultPage(direction) {
+    console.log('[SEARCH] scrollResultPage called:', direction);
+    if (!window.isViewingResult || !window.currentResultContent) return false;
+
+    if (direction === 'up') {
+        closeResultViewer();
+        return true;
+    }
+
+    const resultContent = window.currentResultContent;
+    const viewportHeight = resultContent.offsetHeight;
+
+    if (direction === 'left') {
+        // Scroll up
+        resultContent.scrollTop -= viewportHeight;
+        showScrollIndicator('⬆️ Scrolling Up');
+        console.log('[SEARCH] Scrolled up to:', resultContent.scrollTop);
+        return true;
+    } else if (direction === 'right') {
+        // Scroll down
+        resultContent.scrollTop += viewportHeight;
+        showScrollIndicator('⬇️ Scrolling Down');
+        console.log('[SEARCH] Scrolled down to:', resultContent.scrollTop);
+        return true;
+    }
+
+    return true;
+}
+
+function showScrollIndicator(text) {
+    const resultViewerTitle = document.getElementById('resultViewerTitle');
+    if (resultViewerTitle) {
+        const originalText = resultViewerTitle.textContent;
+        resultViewerTitle.textContent = text;
+        setTimeout(() => {
+            resultViewerTitle.textContent = originalText;
+        }, 1000);
+    }
+}
+
+function closeResultViewer() {
+    const resultViewer = document.getElementById('resultViewer');
+    const resultContent = document.getElementById('resultContent');
+    const menuContainer = document.getElementById('menuContainer');
+
+    // Hide the viewer
+    resultViewer.style.display = 'none';
+
+    // Show menu container again
+    if (menuContainer) menuContainer.style.display = 'flex';
+
+    // Clear the content
+    if (resultContent) resultContent.innerHTML = '';
+
+    // Clear the flags and references
+    window.isViewingResult = false;
+    window.currentResultContent = null;
+    window.currentScrollPosition = 0;
 }
 
 function closeSearch() {
@@ -233,4 +383,6 @@ function closeSearch() {
     searchResults = [];
     allSearchResults = [];
     currentSearchPage = 0;
+    closeResultViewer(); // Also close result viewer if open
 }
+

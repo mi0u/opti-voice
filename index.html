@@ -112,12 +112,21 @@
 
     <div class="container">
         <div class="instructions">
-            <strong>Look Left</strong> Select Left & Continue | <strong>Look Right</strong> Select Right & Continue | <strong>Look Up</strong> Special Menu
+            <strong>Look Left</strong> Select Left & Continue | <strong>Look Right</strong> Select Right & Continue | <strong>Look Up</strong> Special Menu / Back
         </div>
 
         <div class="mode-indicator" id="modeIndicator">Letter Selection Mode</div>
 
-        <div class="menu-container">
+        <!-- Result Viewer (hidden by default) -->
+        <div class="result-viewer" id="resultViewer" style="display: none;">
+            <div class="result-viewer-header">
+                <div class="result-viewer-title" id="resultViewerTitle">Loading...</div>
+                <div class="result-viewer-back">👆 Up to Return | ⬅️ Scroll Up | ➡️ Scroll Down</div>
+            </div>
+            <div class="result-content" id="resultContent"></div>
+        </div>
+
+        <div class="menu-container" id="menuContainer">
             <div class="column" id="leftColumn"></div>
             <div class="column" id="rightColumn"></div>
         </div>
@@ -128,23 +137,23 @@
     </div>
 
     <!-- Configuration -->
-    <script src="config.js"></script>
+    <script src="config.js?v=4.4"></script>
 
-    <!-- Data -->
-    <script src="database.js"></script>
+    <!-- Database -->
+    <script src="database.js?v=4.4"></script>
 
     <!-- Utilities -->
-    <script src="suggestions.js?v=2.9"></script>
-    <script src="storage.js?v=2.9"></script>
+    <script src="suggestions.js?v=4.4"></script>
+    <script src="storage.js?v=4.4"></script>
 
     <!-- Features -->
-    <script src="menus.js?v=2.9"></script>
-    <script src="search.js?v=2.9"></script>
-    <script src="actions.js?v=2.9"></script>
-    <script type="module" src="eyetracking.js?v=2.9"></script>
-    <script src="settings.js?v=2.9"></script>
+    <script src="menus.js?v=4.4"></script>
+    <script src="search.js?v=4.4"></script>
+    <script src="actions.js?v=4.4"></script>
+    <script type="module" src="eyetracking.js?v=4.4"></script>
+    <script src="settings.js?v=4.4"></script>
 
     <!-- Main Application -->
-    <script src="main.js?v=2.9"></script>
+    <script src="main.js?v=4.4"></script>
 </body>
 </html>
