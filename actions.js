@@ -30,16 +30,18 @@ function selectColumn(direction) {
             return;
         }
 
-        // Reset to appropriate menu
-        if (isSpecialMode) {
-            currentMenu = [...specialMenu];
-        } else if (isCustomManageMode) {
-            currentMenu = createManageCustomMenu();
-        } else {
-            currentMenu = [...mainMenu];
+        // Reset to appropriate menu only if not in suggestion mode
+        if (!isSuggestionMode) {
+            if (isSpecialMode) {
+                currentMenu = [...specialMenu];
+            } else if (isCustomManageMode) {
+                currentMenu = createManageCustomMenu();
+            } else {
+                currentMenu = [...mainMenu];
+            }
+            menuStack = [];
+            renderMenu();
         }
-        menuStack = [];
-        renderMenu();
     } else {
         // Continue splitting
         menuStack.push([...currentMenu]);
@@ -58,25 +60,33 @@ function executeAction(action, data, itemData) {
                 textArea.value = textArea.value.slice(0, -1) + 'ς';
             }
             textArea.value += ' ';
-            isSuggestionMode = false;
+            if (!checkForSuggestions()) {
+                isSuggestionMode = false;
+            }
             break;
         case 'backspace':
             undoStack.push(textArea.value);
             if (undoStack.length > 10) undoStack.shift();
             textArea.value = textArea.value.slice(0, -1);
-            isSuggestionMode = false;
+            if (!checkForSuggestions()) {
+                isSuggestionMode = false;
+            }
             break;
         case 'newline':
             undoStack.push(textArea.value);
             if (undoStack.length > 10) undoStack.shift();
             textArea.value += '\n';
-            isSuggestionMode = false;
+            if (!checkForSuggestions()) {
+                isSuggestionMode = false;
+            }
             break;
         case 'delete_word':
             undoStack.push(textArea.value);
             if (undoStack.length > 10) undoStack.shift();
             textArea.value = textArea.value.replace(/\S+\s*$/, '');
-            isSuggestionMode = false;
+            if (!checkForSuggestions()) {
+                isSuggestionMode = false;
+            }
             break;
         case 'delete_all':
             undoStack.push(textArea.value);
@@ -88,22 +98,47 @@ function executeAction(action, data, itemData) {
             if (undoStack.length > 0) {
                 textArea.value = undoStack.pop();
             }
-            isSuggestionMode = false;
+            if (!checkForSuggestions()) {
+                isSuggestionMode = false;
+            }
             break;
         case 'complete':
             undoStack.push(textArea.value);
             if (undoStack.length > 10) undoStack.shift();
-            // Replace current word with suggestion
-            const text = textArea.value;
-            const words = text.split(/(\s+)/);
-            words[words.length - 1] = data;
-            textArea.value = words.join('');
+
+            // Check if the completed item is a single word (no spaces) or a phrase
+            const isWord = !data.includes(' ');
+
+            // Find if there's an overlapping portion
+            const overlap = findOverlap(textArea.value, data);
+
+            if (overlap) {
+                // Remove the overlapping portion from the end of text
+                const overlapStart = textArea.value.lastIndexOf(overlap);
+                if (overlapStart !== -1) {
+                    textArea.value = textArea.value.substring(0, overlapStart);
+                }
+            } else {
+                // No overlap - replace current word as before
+                const text = textArea.value;
+                const words = text.split(/(\s+)/);
+                words[words.length - 1] = '';
+                textArea.value = words.join('');
+            }
+
+            // Add the suggestion
+            textArea.value += data;
+
             // Convert final σ to ς before adding space
             if (textArea.value.endsWith('σ')) {
                 textArea.value = textArea.value.slice(0, -1) + 'ς';
             }
             textArea.value += ' ';
-            isSuggestionMode = false;
+
+            // Check for suggestions (words or phrases based on current text)
+            if (!checkForSuggestions()) {
+                isSuggestionMode = false;
+            }
             break;
         case 'copy':
             if (textArea.value) {
@@ -123,6 +158,9 @@ function executeAction(action, data, itemData) {
                         undoStack.push(textArea.value);
                         if (undoStack.length > 10) undoStack.shift();
                         textArea.value += clipboardText;
+                        if (!checkForSuggestions()) {
+                            isSuggestionMode = false;
+                        }
                     }
                 })
                 .catch(err => {

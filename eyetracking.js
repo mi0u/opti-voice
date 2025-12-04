@@ -89,8 +89,9 @@ class EyeDirectionTracker {
 
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    width: 1280,
-                    height: 720,
+                    width: 640,
+                    height: 480,
+                    frameRate: { ideal: 30, max: 120 },
                     facingMode: 'user'
                 }
             });
@@ -503,7 +504,7 @@ class EyeDirectionTracker {
 class EyeTrackingCalibration {
     constructor(eyeTracker) {
         this.eyeTracker = eyeTracker;
-        this.currentStep = 0;
+        this.currentStep = -1; // Start with intro step
         this.calibrationData = {
             up: [],
             down: [],
@@ -513,29 +514,41 @@ class EyeTrackingCalibration {
 
         this.steps = [
             {
+                direction: 'intro',
+                buttonText: '',
+                instructionText: 'Η διαδικασία βαθμονόμησης θα ξεκινήσει σύντομα.\n\n' +
+                    '📌 Κρατήστε το κεφάλι σας ακίνητο κατά τη διάρκεια της βαθμονόμησης για καλύτερα αποτελέσματα.\n\n' +
+                    '📌 Μετά τη βαθμονόμηση, προσπαθήστε να κρατάτε το κεφάλι σας σχετικά σταθερό για βέλτιστη λειτουργία.\n\n' +
+                    '⚙️ Μπορείτε να προσαρμόσετε περαιτέρω τα όρια ευαισθησίας στις ρυθμίσεις αν χρειαστεί.\n\n' +
+                    'Η βαθμονόμηση θα ξεκινήσει αυτόματα...',
+                arrow: '',
+                blendShapes: [],
+                isIntro: true
+            },
+            {
                 direction: 'up',
-                buttonText: 'Έναρξη Βαθμονόμησης ΠΑΝΩ',
+                buttonText: '',
                 instructionText: 'Όταν δείτε το βέλος ↑, κοιτάξτε ΠΑΝΩ (έξω από την οθόνη) μέχρι να ακούσετε τον ήχο.',
                 arrow: '↑',
                 blendShapes: ['eyeLookUpLeft', 'eyeLookUpRight']
             },
             {
                 direction: 'down',
-                buttonText: 'Έναρξη Βαθμονόμησης ΚΑΤΩ',
+                buttonText: '',
                 instructionText: 'Όταν δείτε το βέλος ↓, κοιτάξτε ΚΑΤΩ μέχρι να ακούσετε τον ήχο.',
                 arrow: '↓',
                 blendShapes: ['eyeLookDownLeft', 'eyeLookDownRight']
             },
             {
                 direction: 'left',
-                buttonText: 'Έναρξη Βαθμονόμησης ΑΡΙΣΤΕΡΑ',
+                buttonText: '',
                 instructionText: 'Όταν δείτε το βέλος ←, κοιτάξτε ΑΡΙΣΤΕΡΑ μέχρι να ακούσετε τον ήχο.',
                 arrow: '←',
                 blendShapes: ['eyeLookOutLeft', 'eyeLookInRight']
             },
             {
                 direction: 'right',
-                buttonText: 'Έναρξη Βαθμονόμησης ΔΕΞΙΑ',
+                buttonText: '',
                 instructionText: 'Όταν δείτε το βέλος →, κοιτάξτε ΔΕΞΙΑ μέχρι να ακούσετε τον ήχο.',
                 arrow: '→',
                 blendShapes: ['eyeLookInLeft', 'eyeLookOutRight']
@@ -545,7 +558,7 @@ class EyeTrackingCalibration {
 
     start() {
         console.log('[CALIBRATION] Starting calibration...');
-        this.currentStep = 0;
+        this.currentStep = -1; // Start with intro
 
         // Reset calibration data
         this.calibrationData = {
@@ -562,6 +575,13 @@ class EyeTrackingCalibration {
 
         this.showCalibrationScreen();
         this.updateUI();
+
+        // Auto-proceed from intro after 8 seconds
+        setTimeout(() => {
+            if (this.currentStep === -1) {
+                this.proceedToNextStep();
+            }
+        }, 8000);
     }
 
     showCalibrationScreen() {
@@ -579,7 +599,7 @@ class EyeTrackingCalibration {
     }
 
     updateUI() {
-        const step = this.steps[this.currentStep];
+        const step = this.steps[this.currentStep + 1]; // Adjust for -1 start index
         const btn = document.getElementById('calibrationBtn');
         const text = document.getElementById('calibrationText');
         const arrow = document.getElementById('calibrationArrow');
@@ -587,22 +607,35 @@ class EyeTrackingCalibration {
         const status = document.getElementById('calibrationStatus');
 
         if (btn) {
-            btn.textContent = step.buttonText;
-            btn.disabled = false; // Add this line to ensure button is enabled
+            // Hide button during calibration steps
+            btn.style.display = 'none';
         }
-        if (text) text.textContent = step.instructionText;
+        if (text) {
+            text.textContent = step.instructionText;
+            // Preserve line breaks for intro
+            text.style.whiteSpace = step.isIntro ? 'pre-line' : 'normal';
+        }
         if (arrowIcon) arrowIcon.textContent = step.arrow;
         if (arrow) arrow.style.display = 'none';
         if (status) status.textContent = '';
     }
 
+    proceedToNextStep() {
+        this.currentStep++;
+        if (this.currentStep + 1 < this.steps.length) {
+            this.updateUI();
+            // Auto-start calibration for each direction
+            setTimeout(() => {
+                this.startDirectionCalibration();
+            }, 500);
+        }
+    }
+
     async startDirectionCalibration() {
-        const step = this.steps[this.currentStep];
-        const btn = document.getElementById('calibrationBtn');
+        const step = this.steps[this.currentStep + 1]; // Adjust for -1 start index
         const arrow = document.getElementById('calibrationArrow');
         const status = document.getElementById('calibrationStatus');
 
-        if (btn) btn.disabled = true;
         if (status) status.textContent = 'Προετοιμασία...';
 
         // Wait 2 seconds
@@ -657,8 +690,6 @@ class EyeTrackingCalibration {
         if (samples.length === 0) {
             console.warn(`[CALIBRATION] No samples collected for ${direction}`);
             if (status) status.textContent = 'Σφάλμα! Δοκιμάστε ξανά.';
-            const btn = document.getElementById('calibrationBtn');
-            if (btn) btn.disabled = false;
             return;
         }
 
@@ -666,8 +697,8 @@ class EyeTrackingCalibration {
         const allValues = samples.flat();
         const mean = allValues.reduce((sum, val) => sum + val, 0) / allValues.length;
 
-        // Set threshold at 80% of mean
-        const threshold = mean * 0.8;
+        // Set threshold at 110% of mean
+        const threshold = mean * 1.1;
 
         console.log(`[CALIBRATION] ${direction}: collected ${samples.length} samples, mean=${mean.toFixed(3)}, threshold=${threshold.toFixed(3)}`);
 
@@ -682,17 +713,17 @@ class EyeTrackingCalibration {
 
         if (status) status.textContent = `✓ Ολοκληρώθηκε! (Κατώφλι: ${threshold.toFixed(2)})`;
 
-        // Move to next step
+        // Auto-proceed to next step
         setTimeout(() => {
-            this.currentStep++;
-            if (this.currentStep < this.steps.length) {
-                this.updateUI();
-                const btn = document.getElementById('calibrationBtn');
-                if (btn) btn.disabled = false;
+            // Check if there are more calibration steps (skip intro at index 0)
+            if (this.currentStep + 2 < this.steps.length) {
+                // More calibration steps remaining
+                this.proceedToNextStep();
             } else {
+                // All calibration steps complete
                 this.completeCalibration();
             }
-        }, 1000);
+        }, 1500);
     }
 
     completeCalibration() {
@@ -871,17 +902,8 @@ async function initializeEyeTrackingWithCalibration() {
         const success = await initializeEyeTracking();
 
         if (success) {
-            // Start calibration
+            // Start automated calibration
             const calibration = new EyeTrackingCalibration(eyeTracker);
-
-            // Setup calibration button handler
-            const calibrationBtn = document.getElementById('calibrationBtn');
-            if (calibrationBtn) {
-                calibrationBtn.addEventListener('click', () => {
-                    calibration.startDirectionCalibration();
-                });
-            }
-
             calibration.start();
         } else {
             console.error('[EYE] Failed to initialize eye tracking for calibration');
