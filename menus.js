@@ -17,7 +17,7 @@ const specialMenu = [
     { label: '↵ New Line', action: 'newline' },
     { label: '📋 Copy', action: 'copy' },
     { label: '📄 Paste', action: 'paste' },
-    { label: '🔍 Google Search', action: 'google_search' },
+    { label: '🔍 Web Search', action: 'google_search' },
     { label: '➕ Add to Custom', action: 'add_custom' },
     { label: '🗑️ Delete Custom', action: 'manage_custom' },
     { label: '⌂ Return', action: 'return' }
@@ -84,14 +84,38 @@ function createSuggestionsMenu() {
 }
 
 function createSearchResultsMenu() {
-    const menu = searchResults.map((result, index) => ({
-        label: `${index + 1}. ${result.title.substring(0, 50)}${result.title.length > 50 ? '...' : ''}`,
-        action: 'open_result',
-        url: result.url
-    }));
+    const menu = [];
 
-    menu.push({ label: '✗ Close Search', action: 'close_search' });
-    menu.push({ label: '⌂ Return to Menu', action: 'return' });
+    // Add search results (up to 10)
+    searchResults.forEach((result, index) => {
+        const globalIndex = currentSearchPage * 10 + index + 1;
+        // Shorter title for rich display
+        const displayTitle = result.title.length > 50
+            ? result.title.substring(0, 50) + '...'
+            : result.title;
+
+        menu.push({
+            label: `${globalIndex}. ${displayTitle}`,
+            action: 'open_result',
+            url: result.url,
+            fullTitle: result.title,
+            snippet: result.snippet,
+            image: result.image
+        });
+    });
+
+    // Add navigation options
+    const hasMore = true; // Always show Next to allow fetching more results
+    const hasPrevious = currentSearchPage > 0;
+
+    if (hasPrevious) {
+        menu.push({ label: '← Previous', action: 'previous_page' });
+    }
+    if (hasMore) {
+        menu.push({ label: 'Next →', action: 'next_page' });
+    }
+
+    menu.push({ label: '⌂ Return', action: 'return' });
 
     return menu;
 }
@@ -118,12 +142,37 @@ function renderMenu() {
         if (typeof item === 'object') {
             if (item.action === 'complete') {
                 div.className = 'item suggestion-item';
+                div.textContent = item.label;
             } else if (item.action === 'delete_custom_entry') {
                 div.className = 'item custom-item';
+                div.textContent = item.label;
+            } else if (item.action === 'open_result') {
+                div.className = 'item search-result-item';
+                // Create rich search result
+                if (item.image) {
+                    const img = document.createElement('img');
+                    img.src = item.image;
+                    img.className = 'search-result-image';
+                    img.onerror = () => img.style.display = 'none';
+                    div.appendChild(img);
+                }
+                const content = document.createElement('div');
+                content.className = 'search-result-content';
+                const title = document.createElement('div');
+                title.className = 'search-result-title';
+                title.textContent = item.label;
+                content.appendChild(title);
+                if (item.snippet) {
+                    const snippet = document.createElement('div');
+                    snippet.className = 'search-result-snippet';
+                    snippet.textContent = item.snippet.substring(0, 80) + (item.snippet.length > 80 ? '...' : '');
+                    content.appendChild(snippet);
+                }
+                div.appendChild(content);
             } else {
                 div.className = 'item special-item';
+                div.textContent = item.label;
             }
-            div.textContent = item.label;
         } else {
             div.className = 'item';
             div.textContent = item;
@@ -136,12 +185,37 @@ function renderMenu() {
         if (typeof item === 'object') {
             if (item.action === 'complete') {
                 div.className = 'item suggestion-item';
+                div.textContent = item.label;
             } else if (item.action === 'delete_custom_entry') {
                 div.className = 'item custom-item';
+                div.textContent = item.label;
+            } else if (item.action === 'open_result') {
+                div.className = 'item search-result-item';
+                // Create rich search result
+                if (item.image) {
+                    const img = document.createElement('img');
+                    img.src = item.image;
+                    img.className = 'search-result-image';
+                    img.onerror = () => img.style.display = 'none';
+                    div.appendChild(img);
+                }
+                const content = document.createElement('div');
+                content.className = 'search-result-content';
+                const title = document.createElement('div');
+                title.className = 'search-result-title';
+                title.textContent = item.label;
+                content.appendChild(title);
+                if (item.snippet) {
+                    const snippet = document.createElement('div');
+                    snippet.className = 'search-result-snippet';
+                    snippet.textContent = item.snippet.substring(0, 80) + (item.snippet.length > 80 ? '...' : '');
+                    content.appendChild(snippet);
+                }
+                div.appendChild(content);
             } else {
                 div.className = 'item special-item';
+                div.textContent = item.label;
             }
-            div.textContent = item.label;
         } else {
             div.className = 'item';
             div.textContent = item;

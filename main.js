@@ -13,6 +13,8 @@ let customWords = {};
 let customPhrases = [];
 let searchWindow = null;
 let searchResults = [];
+let allSearchResults = [];
+let currentSearchPage = 0;
 let isSearchMode = false;
 let lastSearchUrl = '';
 

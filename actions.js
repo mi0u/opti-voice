@@ -14,7 +14,7 @@ function selectColumn(direction) {
         if (typeof item === 'object') {
             executeAction(item.action, item.completion, item);
         } else {
-            // Save state for undo
+            // Letter selection
             undoStack.push(textArea.value);
             if (undoStack.length > 10) undoStack.shift();
             textArea.value += item;
@@ -30,18 +30,31 @@ function selectColumn(direction) {
             return;
         }
 
-        // Reset to appropriate menu only if not in suggestion mode
-        if (!isSuggestionMode) {
-            if (isSpecialMode) {
-                currentMenu = [...specialMenu];
-            } else if (isCustomManageMode) {
-                currentMenu = createManageCustomMenu();
-            } else {
-                currentMenu = [...mainMenu];
-            }
-            menuStack = [];
-            renderMenu();
+        // Don't reset menu for search-related actions - they handle their own menu updates
+        if (item.action === 'next_page' ||
+            item.action === 'previous_page' ||
+            item.action === 'open_result') {
+            return;
         }
+
+        // Don't reset if in suggestion mode
+        if (isSuggestionMode) {
+            return;
+        }
+
+        // Reset to appropriate menu based on current mode
+        if (isSpecialMode) {
+            currentMenu = [...specialMenu];
+        } else if (isCustomManageMode) {
+            currentMenu = createManageCustomMenu();
+        } else if (isSearchMode) {
+            // Stay in search mode after actions like close
+            return;
+        } else {
+            currentMenu = [...mainMenu];
+        }
+        menuStack = [];
+        renderMenu();
     } else {
         // Continue splitting
         menuStack.push([...currentMenu]);
@@ -231,45 +244,28 @@ function executeAction(action, data, itemData) {
             isSpecialMode = false;
             isSuggestionMode = false;
             isCustomManageMode = false;
+            isSearchMode = false;
             currentMenu = [...mainMenu];
             menuStack = [];
             renderMenu();
             break;
         case 'google_search':
-            openGoogleSearch();
+            performDuckDuckGoSearch();
             break;
         case 'open_result':
             openSearchResult(itemData.url);
             break;
         case 'close_search':
-            closeSearchWindow();
+            closeSearch();
             currentMenu = [...mainMenu];
             menuStack = [];
             renderMenu();
             break;
-        case 'reload_search':
-            if (lastSearchUrl && searchWindow && !searchWindow.closed) {
-                searchWindow.location.href = lastSearchUrl;
-            }
+        case 'next_page':
+            nextSearchPage();
             break;
-        case 'reopen_search':
-            if (lastSearchUrl) {
-                const width = 1000;
-                const height = 800;
-                const left = (screen.width - width) / 2;
-                const top = (screen.height - height) / 2;
-
-                searchWindow = window.open(
-                    lastSearchUrl,
-                    'GoogleSearchWindow',
-                    `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
-                );
-
-                isSearchMode = true;
-                currentMenu = createFallbackSearchMenu();
-                menuStack = [];
-                renderMenu();
-            }
+        case 'previous_page':
+            previousSearchPage();
             break;
     }
 }
