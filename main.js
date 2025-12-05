@@ -107,7 +107,14 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
         // Down does nothing when viewing results
         if (!window.isViewingResult) {
-            executeAction('speak', null, null);
+            // Check if menu is in initial state or has navigation history
+            if (menuStack.length > 0) {
+                // Menu has history - go back one level
+                goBackInMenu();
+            } else {
+                // Menu is at initial state - trigger text-to-speech
+                executeAction('speak', null, null);
+            }
         }
     }
 });

@@ -252,3 +252,13 @@ function toggleSpecialMenu() {
     menuStack = [];
     renderMenu();
 }
+
+function goBackInMenu() {
+    // Go back one level in the menu navigation
+    if (menuStack.length > 0) {
+        currentMenu = menuStack.pop();
+        renderMenu();
+        return true; // Successfully went back
+    }
+    return false; // Already at initial state
+}
