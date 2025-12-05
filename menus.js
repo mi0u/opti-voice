@@ -129,101 +129,171 @@ function createFallbackSearchMenu() {
     ];
 }
 
-function renderMenu() {
+function renderMenu(animationDirection = null) {
     const mid = Math.ceil(currentMenu.length / 2);
     const leftItems = currentMenu.slice(0, mid);
     const rightItems = currentMenu.slice(mid);
 
+    // If animation is requested, first animate the current items
+    if (animationDirection) {
+        animateMenuTransition(leftItems, rightItems, animationDirection);
+        return;
+    }
+
+    // No animation - direct render
+    renderMenuDirect(leftItems, rightItems);
+}
+
+function animateMenuTransition(newLeftItems, newRightItems, direction) {
+    // Get current items before clearing
+    const currentLeftItems = Array.from(leftColumn.children);
+    const currentRightItems = Array.from(rightColumn.children);
+
+    // Enable overflow on columns during animation
+    leftColumn.classList.add('animating');
+    rightColumn.classList.add('animating');
+
+    // Set animation duration based on hold duration setting
+    const animationDuration = `${EYE_DETECTION_CONFIG.HOLD_DURATION}ms`;
+    document.documentElement.style.setProperty('--animation-duration', animationDuration);
+
+    if (direction === 'left') {
+        // User selected left column
+        // Items from second half of left column need to slide right
+        const mid = Math.ceil(currentLeftItems.length / 2);
+        const itemsMovingRight = currentLeftItems.slice(mid);
+
+        // Calculate vertical offset for each item to its destination
+        itemsMovingRight.forEach((item, index) => {
+            const currentRect = item.getBoundingClientRect();
+            // Target position is in right column at index position
+            const targetIndex = index;
+            const targetItem = currentLeftItems[targetIndex];
+            const targetRect = targetItem.getBoundingClientRect();
+            const verticalOffset = targetRect.top - currentRect.top;
+
+            // Set custom property for vertical movement
+            item.style.setProperty('--vertical-offset', `${verticalOffset}px`);
+            item.classList.add('slide-to-right');
+        });
+
+        // Fade out all right column items
+        currentRightItems.forEach(item => {
+            item.classList.add('fade-out');
+        });
+
+    } else if (direction === 'right') {
+        // User selected right column
+        // Items from first half of right column need to slide left
+        const mid = Math.ceil(currentRightItems.length / 2);
+        const itemsMovingLeft = currentRightItems.slice(0, mid);
+
+        // Calculate vertical offset for each item to its destination
+        itemsMovingLeft.forEach((item, index) => {
+            const currentRect = item.getBoundingClientRect();
+            // Target position is in left column at index position
+            const targetIndex = index;
+            const targetItem = currentRightItems[targetIndex];
+            const targetRect = targetItem.getBoundingClientRect();
+            const verticalOffset = targetRect.top - currentRect.top;
+
+            // Set custom property for vertical movement
+            item.style.setProperty('--vertical-offset', `${verticalOffset}px`);
+            item.classList.add('slide-to-left');
+        });
+
+        // Fade out all left column items
+        currentLeftItems.forEach(item => {
+            item.classList.add('fade-out');
+        });
+    }
+
+    // After animation completes, render the new menu
+    setTimeout(() => {
+        // Remove animating class from columns
+        leftColumn.classList.remove('animating');
+        rightColumn.classList.remove('animating');
+        renderMenuDirect(newLeftItems, newRightItems, false);
+    }, EYE_DETECTION_CONFIG.HOLD_DURATION);
+}
+
+function renderMenuDirect(leftItems, rightItems, fadeIn = false) {
     leftColumn.innerHTML = '';
     rightColumn.innerHTML = '';
 
-    leftItems.forEach(item => {
-        const div = document.createElement('div');
-        if (typeof item === 'object') {
-            if (item.action === 'complete') {
-                div.className = 'item suggestion-item';
-                div.textContent = item.label;
-            } else if (item.action === 'delete_custom_entry') {
-                div.className = 'item custom-item';
-                div.textContent = item.label;
-            } else if (item.action === 'open_result') {
-                div.className = 'item search-result-item';
-                // Create rich search result
-                if (item.image) {
-                    const img = document.createElement('img');
-                    img.src = item.image;
-                    img.className = 'search-result-image';
-                    img.onerror = () => img.style.display = 'none';
-                    div.appendChild(img);
-                }
-                const content = document.createElement('div');
-                content.className = 'search-result-content';
-                const title = document.createElement('div');
-                title.className = 'search-result-title';
-                title.textContent = item.label;
-                content.appendChild(title);
-                if (item.snippet) {
-                    const snippet = document.createElement('div');
-                    snippet.className = 'search-result-snippet';
-                    snippet.textContent = item.snippet.substring(0, 80) + (item.snippet.length > 80 ? '...' : '');
-                    content.appendChild(snippet);
-                }
-                div.appendChild(content);
-            } else {
-                div.className = 'item special-item';
-                div.textContent = item.label;
-            }
-        } else {
-            div.className = 'item';
-            div.textContent = item;
+    leftItems.forEach((item, index) => {
+        const div = createMenuItem(item);
+        if (fadeIn) {
+            div.classList.add('fade-in');
         }
         leftColumn.appendChild(div);
     });
 
-    rightItems.forEach(item => {
-        const div = document.createElement('div');
-        if (typeof item === 'object') {
-            if (item.action === 'complete') {
-                div.className = 'item suggestion-item';
-                div.textContent = item.label;
-            } else if (item.action === 'delete_custom_entry') {
-                div.className = 'item custom-item';
-                div.textContent = item.label;
-            } else if (item.action === 'open_result') {
-                div.className = 'item search-result-item';
-                // Create rich search result
-                if (item.image) {
-                    const img = document.createElement('img');
-                    img.src = item.image;
-                    img.className = 'search-result-image';
-                    img.onerror = () => img.style.display = 'none';
-                    div.appendChild(img);
-                }
-                const content = document.createElement('div');
-                content.className = 'search-result-content';
-                const title = document.createElement('div');
-                title.className = 'search-result-title';
-                title.textContent = item.label;
-                content.appendChild(title);
-                if (item.snippet) {
-                    const snippet = document.createElement('div');
-                    snippet.className = 'search-result-snippet';
-                    snippet.textContent = item.snippet.substring(0, 80) + (item.snippet.length > 80 ? '...' : '');
-                    content.appendChild(snippet);
-                }
-                div.appendChild(content);
-            } else {
-                div.className = 'item special-item';
-                div.textContent = item.label;
-            }
-        } else {
-            div.className = 'item';
-            div.textContent = item;
+    rightItems.forEach((item, index) => {
+        const div = createMenuItem(item);
+        if (fadeIn) {
+            div.classList.add('fade-in');
         }
         rightColumn.appendChild(div);
     });
 
+    // Clean up animation classes after fade-in completes
+    if (fadeIn) {
+        setTimeout(() => {
+            document.querySelectorAll('.item').forEach(item => {
+                item.classList.remove('fade-in');
+            });
+        }, 300);
+    }
+
     // Update mode indicator
+    updateModeIndicator();
+}
+
+function createMenuItem(item) {
+    const div = document.createElement('div');
+    if (typeof item === 'object') {
+        if (item.action === 'complete') {
+            div.className = 'item suggestion-item';
+            div.textContent = item.label;
+        } else if (item.action === 'delete_custom_entry') {
+            div.className = 'item custom-item';
+            div.textContent = item.label;
+        } else if (item.action === 'open_result') {
+            div.className = 'item search-result-item';
+            // Create rich search result
+            if (item.image) {
+                const img = document.createElement('img');
+                img.src = item.image;
+                img.className = 'search-result-image';
+                img.onerror = () => img.style.display = 'none';
+                div.appendChild(img);
+            }
+            const content = document.createElement('div');
+            content.className = 'search-result-content';
+            const title = document.createElement('div');
+            title.className = 'search-result-title';
+            title.textContent = item.label;
+            content.appendChild(title);
+            if (item.snippet) {
+                const snippet = document.createElement('div');
+                snippet.className = 'search-result-snippet';
+                snippet.textContent = item.snippet.substring(0, 80) + (item.snippet.length > 80 ? '...' : '');
+                content.appendChild(snippet);
+            }
+            div.appendChild(content);
+        } else {
+            div.className = 'item special-item';
+            div.textContent = item.label;
+        }
+    } else {
+        div.className = 'item';
+        div.textContent = item;
+    }
+    return div;
+}
+
+function updateModeIndicator() {
     if (isCustomManageMode) {
         modeIndicator.textContent = 'Delete Custom Entries';
         modeIndicator.className = 'mode-indicator custom';

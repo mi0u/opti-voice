@@ -37,7 +37,7 @@ Click the ⚙️ Settings button to customize:
 
 - **Vertical Threshold**: Sensitivity for looking up (0.1 = easy, 0.8 = hard)
 - **Horizontal Threshold**: Sensitivity for left/right (0.1 = easy, 0.5 = hard)
-- **Hold Duration**: How long to maintain gaze (300-2000ms)
+- **Hold Duration**: How long to maintain gaze (100-2000ms)
 - **Stability Frames**: Required frame consistency (2-10 frames)
 - **Smoothing Factor**: Reduce jitter (0.1 = responsive, 0.9 = smooth)
 - **Head Compensation**: Filter head movements (0 = off, 1.0 = max)

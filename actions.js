@@ -59,7 +59,7 @@ function selectColumn(direction) {
         // Continue splitting
         menuStack.push([...currentMenu]);
         currentMenu = selectedItems;
-        renderMenu();
+        renderMenu(direction);
     }
 }
 
