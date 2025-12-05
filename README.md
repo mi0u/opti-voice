@@ -90,4 +90,6 @@ This software is freely available for use, modification, and distribution. See t
 
 Developed by mi0u
 
+Implementation created almost exclusively using GitHub Copilot with Claude Sonnet 4.5
+
 Built with [MediaPipe](https://mediapipe.dev/) by Google
