@@ -169,7 +169,7 @@ class EyeDirectionTracker {
             console.log('[EYE] Eye tracking initialized successfully');
             const gazeIndicator = document.getElementById('gazeIndicator');
             if (gazeIndicator) {
-                gazeIndicator.textContent = '✓ Eye Tracking Active';
+                gazeIndicator.textContent = t('gazeIndicator.active');
                 gazeIndicator.classList.add('active');
             }
 
@@ -516,11 +516,7 @@ class EyeTrackingCalibration {
             {
                 direction: 'intro',
                 buttonText: '',
-                instructionText: 'Η διαδικασία βαθμονόμησης θα ξεκινήσει σύντομα.\n\n' +
-                    '📌 Κρατήστε το κεφάλι σας ακίνητο κατά τη διάρκεια της βαθμονόμησης για καλύτερα αποτελέσματα.\n\n' +
-                    '📌 Μετά τη βαθμονόμηση, προσπαθήστε να κρατάτε το κεφάλι σας σχετικά σταθερό για βέλτιστη λειτουργία.\n\n' +
-                    '⚙️ Μπορείτε να προσαρμόσετε περαιτέρω τα όρια ευαισθησίας στις ρυθμίσεις αν χρειαστεί.\n\n' +
-                    'Η βαθμονόμηση θα ξεκινήσει αυτόματα...',
+                instructionText: t('calibration.introText'),
                 arrow: '',
                 blendShapes: [],
                 isIntro: true
@@ -528,28 +524,28 @@ class EyeTrackingCalibration {
             {
                 direction: 'up',
                 buttonText: '',
-                instructionText: 'Όταν δείτε το βέλος ↑, κοιτάξτε ΠΑΝΩ (έξω από την οθόνη) μέχρι να ακούσετε τον ήχο.',
+                instructionText: t('calibration.upInstruction'),
                 arrow: '↑',
                 blendShapes: ['eyeLookUpLeft', 'eyeLookUpRight']
             },
             {
                 direction: 'down',
                 buttonText: '',
-                instructionText: 'Όταν δείτε το βέλος ↓, κοιτάξτε ΚΑΤΩ μέχρι να ακούσετε τον ήχο.',
+                instructionText: t('calibration.downInstruction'),
                 arrow: '↓',
                 blendShapes: ['eyeLookDownLeft', 'eyeLookDownRight']
             },
             {
                 direction: 'left',
                 buttonText: '',
-                instructionText: 'Όταν δείτε το βέλος ←, κοιτάξτε ΑΡΙΣΤΕΡΑ μέχρι να ακούσετε τον ήχο.',
+                instructionText: t('calibration.leftInstruction'),
                 arrow: '←',
                 blendShapes: ['eyeLookOutLeft', 'eyeLookInRight']
             },
             {
                 direction: 'right',
                 buttonText: '',
-                instructionText: 'Όταν δείτε το βέλος →, κοιτάξτε ΔΕΞΙΑ μέχρι να ακούσετε τον ήχο.',
+                instructionText: t('calibration.rightInstruction'),
                 arrow: '→',
                 blendShapes: ['eyeLookInLeft', 'eyeLookOutRight']
             }
@@ -636,13 +632,19 @@ class EyeTrackingCalibration {
         const arrow = document.getElementById('calibrationArrow');
         const status = document.getElementById('calibrationStatus');
 
-        if (status) status.textContent = 'Προετοιμασία...';
+        if (status) status.textContent = t('calibration.preparing');
 
         // Wait 2 seconds
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         if (arrow) arrow.style.display = 'block';
-        if (status) status.textContent = `Κοιτάξτε ${step.direction === 'up' ? 'ΠΑΝΩ' : step.direction === 'down' ? 'ΚΑΤΩ' : step.direction === 'left' ? 'ΑΡΙΣΤΕΡΑ' : 'ΔΕΞΙΑ'}!`;
+        const directionMap = {
+            'up': t('calibration.lookUp'),
+            'down': t('calibration.lookDown'),
+            'left': t('calibration.lookLeft'),
+            'right': t('calibration.lookRight')
+        };
+        if (status) status.textContent = directionMap[step.direction];
 
         // Collect samples for about 1.5 seconds (approximately 45 frames at 30fps)
         const samples = [];
@@ -689,7 +691,7 @@ class EyeTrackingCalibration {
 
         if (samples.length === 0) {
             console.warn(`[CALIBRATION] No samples collected for ${direction}`);
-            if (status) status.textContent = 'Σφάλμα! Δοκιμάστε ξανά.';
+            if (status) status.textContent = t('calibration.error');
             return;
         }
 
@@ -711,7 +713,7 @@ class EyeTrackingCalibration {
         // Play beep
         playDetectionTone();
 
-        if (status) status.textContent = `✓ Ολοκληρώθηκε! (Κατώφλι: ${threshold.toFixed(2)})`;
+        if (status) status.textContent = `${t('calibration.completed')} (${t('calibration.threshold')}: ${threshold.toFixed(2)})`;
 
         // Auto-proceed to next step
         setTimeout(() => {
@@ -754,7 +756,7 @@ class EyeTrackingCalibration {
         }
 
         const status = document.getElementById('calibrationStatus');
-        if (status) status.textContent = '✓ Βαθμονόμηση Ολοκληρώθηκε!';
+        if (status) status.textContent = t('calibration.calibrationComplete');
 
         // Hide calibration screen and start app
         setTimeout(() => {

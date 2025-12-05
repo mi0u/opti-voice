@@ -149,6 +149,36 @@
     transform: scale(1.2);
 }
 
+/* Language selector */
+.language-select {
+    width: 100%;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ecf0f1;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.language-select:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.language-select:focus {
+    border-color: #3498db;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.language-select option {
+    background: #2c3e50;
+    color: #ecf0f1;
+}
+
+
 .setting-group input[type="range"]::-moz-range-thumb {
     width: 18px;
     height: 18px;

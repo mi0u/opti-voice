@@ -46,18 +46,8 @@ function addCurrentToCustom() {
         if (!customPhrases.includes(entry)) {
             customPhrases.push(entry);
             saveCustomEntries();
-            // Visual feedback - could flash the mode indicator
-            modeIndicator.textContent = '✓ Added to Custom Database!';
-            modeIndicator.className = 'mode-indicator custom';
-            setTimeout(() => {
-                if (isSpecialMode) {
-                    modeIndicator.textContent = 'Special Functions Menu';
-                    modeIndicator.className = 'mode-indicator special';
-                } else {
-                    modeIndicator.textContent = 'Letter Selection Mode';
-                    modeIndicator.className = 'mode-indicator';
-                }
-            }, 2000);
+            // Show notification
+            showNotification(t('notifications.customWordAdded'), 2000);
         }
     } else {
         // It's a word
@@ -67,18 +57,8 @@ function addCurrentToCustom() {
         if (!customWords[firstLetter].includes(entry)) {
             customWords[firstLetter].push(entry);
             saveCustomEntries();
-            // Visual feedback
-            modeIndicator.textContent = '✓ Added to Custom Database!';
-            modeIndicator.className = 'mode-indicator custom';
-            setTimeout(() => {
-                if (isSpecialMode) {
-                    modeIndicator.textContent = 'Special Functions Menu';
-                    modeIndicator.className = 'mode-indicator special';
-                } else {
-                    modeIndicator.textContent = 'Letter Selection Mode';
-                    modeIndicator.className = 'mode-indicator';
-                }
-            }, 2000);
+            // Show notification
+            showNotification(t('notifications.customWordAdded'), 2000);
         }
     }
 }

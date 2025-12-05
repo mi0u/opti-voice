@@ -60,7 +60,7 @@ async function performDuckDuckGoSearch(page = 0, retryCount = 0) {
     }
 
     if (!html) {
-        showNotification('Unable to fetch search results. All CORS proxies are unavailable. Please try again later.', 6000);
+        showNotification(t('notifications.corsProxiesUnavailable'), 6000);
         return;
     }
 
@@ -188,7 +188,7 @@ async function performDuckDuckGoSearch(page = 0, retryCount = 0) {
                 lastWorkingProxy = (lastWorkingProxy + 1) % corsProxies.length;
                 return performDuckDuckGoSearch(page, retryCount + 1);
             } else {
-                showNotification('No search results found after 3 attempts. Please try a different query.', 5000);
+                showNotification(t('notifications.noSearchResults'), 5000);
             }
         }
     } catch (error) {
@@ -201,7 +201,7 @@ async function performDuckDuckGoSearch(page = 0, retryCount = 0) {
             lastWorkingProxy = (lastWorkingProxy + 1) % corsProxies.length;
             return performDuckDuckGoSearch(page, retryCount + 1);
         } else {
-            showNotification('Failed to parse search results after 3 attempts. Please try again.', 5000);
+            showNotification(t('notifications.parseSearchFailed'), 5000);
         }
     }
 }

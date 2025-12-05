@@ -81,10 +81,10 @@ function initializeSettingsPanel() {
 
     // Reset button - auto-reset without confirmation (accessibility)
     resetBtn.addEventListener('click', () => {
-        showNotification('Resetting all settings to defaults...', 3000);
+        showNotification(t('notifications.resetSettings'), 3000);
         setTimeout(() => {
             resetToDefaults();
-            showNotification('Settings reset complete!', 3000);
+            showNotification(t('notifications.resetComplete'), 3000);
         }, 500);
     });
 
@@ -92,7 +92,7 @@ function initializeSettingsPanel() {
     const recalibrateBtn = document.getElementById('recalibrateBtn');
     if (recalibrateBtn) {
         recalibrateBtn.addEventListener('click', () => {
-            showNotification('Starting calibration process...', 3000);
+            showNotification(t('notifications.startingCalibration'), 3000);
 
             // Close settings panel
             settingsPanelVisible = false;
@@ -116,11 +116,26 @@ function initializeSettingsPanel() {
 
                 calibration.start();
             } else {
-                showNotification('Eye tracker not initialized. Please wait for the camera to start.', 5000);
+                showNotification(t('notifications.eyeTrackerNotReady'), 5000);
                 console.error('[CALIBRATION] Eye tracker not available:', window.eyeTracker);
             }
         });
-    }    // Eye visualization toggle
+    }
+
+    // Language selector
+    const languageSelect = document.getElementById('languageSelect');
+    if (languageSelect) {
+        // Set initial value from current language
+        languageSelect.value = currentLanguage;
+
+        languageSelect.addEventListener('change', (e) => {
+            const newLang = e.target.value;
+            switchLanguage(newLang);
+            console.log('[SETTINGS] Language changed to:', newLang);
+        });
+    }
+
+    // Eye visualization toggle
     const eyeViewToggle = document.getElementById('eyeViewToggle');
     const eyeVisualization = document.getElementById('eyeVisualization');
     eyeViewToggle.addEventListener('change', (e) => {

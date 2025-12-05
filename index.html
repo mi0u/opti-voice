@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="el">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Three-Signal Communication</title>
+    <title>Επικοινωνία Τριών Σημάτων</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="settings-panel.css">
     <link rel="stylesheet" href="calibration.css">
@@ -12,168 +12,178 @@
     <!-- Calibration Screen -->
     <div class="calibration-screen" id="calibrationScreen" style="display: none;">
         <div class="calibration-container">
-            <h1 id="calibrationTitle">Βαθμονόμηση Eye Tracking</h1>
+            <h1 id="calibrationTitle" data-i18n="calibration.title">Βαθμονόμηση Eye Tracking</h1>
             <div class="calibration-instructions" id="calibrationInstructions">
-                <p id="calibrationText">Καλώς ήρθατε! Πρέπει να βαθμονομήσουμε το σύστημα.</p>
+                <p id="calibrationText" data-i18n="calibration.welcomeText">Καλώς ήρθατε! Πρέπει να βαθμονομήσουμε το σύστημα.</p>
             </div>
             <div class="calibration-arrow" id="calibrationArrow" style="display: none;">
                 <span id="arrowIcon">↑</span>
             </div>
             <div class="calibration-status" id="calibrationStatus"></div>
-            <button class="calibration-btn" id="calibrationBtn">Έναρξη Βαθμονόμησης ΠΑΝΩ</button>
+            <button class="calibration-btn" id="calibrationBtn" data-i18n="calibration.btnStartUp">Έναρξη Βαθμονόμησης ΠΑΝΩ</button>
         </div>
     </div>
 
-    <div class="gaze-indicator" id="gazeIndicator">🎯 Initializing...</div>
+    <div class="gaze-indicator" id="gazeIndicator" data-i18n="gazeIndicator.initializing">🎯 Προετοιμασία...</div>
     <video class="video-preview" id="videoPreview" autoplay playsinline></video>
     <canvas class="eye-visualization" id="eyeVisualization" width="400" height="200"></canvas>
 
     <!-- Settings Panel Toggle Button -->
-    <button class="settings-toggle-btn" id="settingsToggleBtn">⚙️ Settings</button>
+    <button class="settings-toggle-btn" id="settingsToggleBtn" data-i18n="settings.toggleBtn">⚙️ Ρυθμίσεις</button>
 
     <!-- Help Button -->
-    <button class="help-toggle-btn" id="helpToggleBtn">❓ Help</button>
+    <button class="help-toggle-btn" id="helpToggleBtn" data-i18n="help.toggleBtn">❓ Βοήθεια</button>
 
     <!-- Settings Panel -->
     <div class="settings-panel" id="settingsPanel">
-        <h3>Eye Tracking Settings</h3>
+        <h3 data-i18n="settings.title">Ρυθμίσεις Eye Tracking</h3>
+
+        <div class="setting-group">
+            <label for="languageSelect">
+                <span data-i18n="settings.language">Γλώσσα</span>
+            </label>
+            <select id="languageSelect" class="language-select">
+                <option value="el" data-i18n="settings.languageGreek">Ελληνικά</option>
+                <option value="en" data-i18n="settings.languageEnglish">English</option>
+            </select>
+        </div>
 
         <div class="setting-group">
             <label for="upThreshold">
-                Up Threshold: <span id="upValue">0.60</span>
+                <span data-i18n="settings.upThreshold">Όριο Πάνω</span>: <span id="upValue">0.60</span>
             </label>
             <input type="range" id="upThreshold" min="0.01" max="1.5" step="0.01" value="0.60">
-            <small>Look up sensitivity (0.1 = easy, 1.5 = hard)</small>
+            <small data-i18n="settings.upHelp">Ευαισθησία κοιτάγματος πάνω (0.1 = εύκολο, 1.5 = δύσκολο)</small>
         </div>
 
         <div class="setting-group">
             <label for="downThreshold">
-                Down Threshold: <span id="downValue">0.60</span>
+                <span data-i18n="settings.downThreshold">Όριο Κάτω</span>: <span id="downValue">0.60</span>
             </label>
             <input type="range" id="downThreshold" min="0.01" max="1.5" step="0.01" value="0.60">
-            <small>Look down sensitivity (0.1 = easy, 1.5 = hard)</small>
+            <small data-i18n="settings.downHelp">Ευαισθησία κοιτάγματος κάτω (0.1 = εύκολο, 1.5 = δύσκολο)</small>
         </div>
 
         <div class="setting-group">
             <label for="leftThreshold">
-                Left Threshold: <span id="leftValue">0.60</span>
+                <span data-i18n="settings.leftThreshold">Όριο Αριστερά</span>: <span id="leftValue">0.60</span>
             </label>
             <input type="range" id="leftThreshold" min="0.01" max="1.5" step="0.01" value="0.60">
-            <small>Look left sensitivity (0.1 = easy, 1.5 = hard)</small>
+            <small data-i18n="settings.leftHelp">Ευαισθησία κοιτάγματος αριστερά (0.1 = εύκολο, 1.5 = δύσκολο)</small>
         </div>
 
         <div class="setting-group">
             <label for="rightThreshold">
-                Right Threshold: <span id="rightValue">0.60</span>
+                <span data-i18n="settings.rightThreshold">Όριο Δεξιά</span>: <span id="rightValue">0.60</span>
             </label>
             <input type="range" id="rightThreshold" min="0.01" max="1.5" step="0.01" value="0.60">
-            <small>Look right sensitivity (0.1 = easy, 1.5 = hard)</small>
+            <small data-i18n="settings.rightHelp">Ευαισθησία κοιτάγματος δεξιά (0.1 = εύκολο, 1.5 = δύσκολο)</small>
         </div>
 
         <div class="setting-group">
             <label for="holdDuration">
-                Hold Duration: <span id="holdValue">500</span>ms
+                <span data-i18n="settings.holdDuration">Διάρκεια Κρατήματος</span>: <span id="holdValue">500</span>ms
             </label>
             <input type="range" id="holdDuration" min="100" max="2000" step="50" value="500">
-            <small>How long to hold gaze (100-2000ms)</small>
+            <small data-i18n="settings.holdHelp">Πόσο χρόνο να κρατάτε το βλέμμα (100-2000ms)</small>
         </div>
 
         <div class="setting-group">
             <label for="stabilityFrames">
-                Stability Frames: <span id="stabilityValue">5</span>
+                <span data-i18n="settings.stabilityFrames">Καρέ Σταθερότητας</span>: <span id="stabilityValue">5</span>
             </label>
             <input type="range" id="stabilityFrames" min="2" max="10" step="1" value="5">
-            <small>How stable direction must be (2-10 frames)</small>
+            <small data-i18n="settings.stabilityHelp">Πόσο σταθερή πρέπει να είναι η κατεύθυνση (2-10 καρέ)</small>
         </div>
 
         <div class="setting-group">
             <label for="smoothingFactor">
-                Smoothing Factor: <span id="smoothingValue">0.80</span>
+                <span data-i18n="settings.smoothingFactor">Παράγοντας Εξομάλυνσης</span>: <span id="smoothingValue">0.80</span>
             </label>
             <input type="range" id="smoothingFactor" min="0.1" max="0.9" step="0.01" value="0.8">
-            <small>Reduce jitter (0.1 = responsive, 0.9 = smooth)</small>
+            <small data-i18n="settings.smoothingHelp">Μείωση τρεμοπαίγματος (0.1 = αποκριτικό, 0.9 = ομαλό)</small>
         </div>
 
         <div class="setting-group">
             <label class="toggle-label">
                 <input type="checkbox" id="eyeViewToggle" checked>
-                <span>Show Eye Visualization</span>
+                <span data-i18n="settings.showEyeVisualization">Εμφάνιση Οπτικοποίησης Ματιών</span>
             </label>
         </div>
 
         <div class="setting-group">
             <label class="toggle-label">
                 <input type="checkbox" id="soundToggle" checked>
-                <span>Sound on Detection</span>
+                <span data-i18n="settings.soundOnDetection">Ήχος στην Ανίχνευση</span>
             </label>
         </div>
 
-        <button class="reset-btn" id="resetBtn">Reset to Defaults</button>
-        <button class="reset-btn" id="recalibrateBtn" style="margin-top: 10px; background: #2196F3;">Re-calibrate Thresholds</button>
-        <small class="help-text">Press 'O' key to log current eye tracking values to console</small>
+        <button class="reset-btn" id="resetBtn" data-i18n="settings.resetBtn">Επαναφορά στις Προεπιλογές</button>
+        <button class="reset-btn" id="recalibrateBtn" style="margin-top: 10px; background: #2196F3;" data-i18n="settings.recalibrateBtn">Επαναβαθμονόμηση Ορίων</button>
+        <small class="help-text" data-i18n="settings.helpText">Πατήστε το πλήκτρο 'O' για καταγραφή των τρεχόντων τιμών eye tracking στην κονσόλα</small>
     </div>
 
     <!-- Help Panel -->
     <div class="help-panel" id="helpPanel">
         <div class="help-content">
-            <h3>❓ Helper's Guide</h3>
+            <h3 data-i18n="help.title">❓ Οδηγός Βοηθού</h3>
 
             <div class="help-section">
-                <h4>📖 How This App Works</h4>
-                <p>This app lets the user communicate by looking at different areas of the screen. The camera tracks their eye movements to select letters, words, and commands.</p>
+                <h4 data-i18n="help.howItWorks.title">📖 Πώς Λειτουργεί η Εφαρμογή</h4>
+                <p data-i18n="help.howItWorks.description">Αυτή η εφαρμογή επιτρέπει στον χρήστη να επικοινωνεί κοιτάζοντας διάφορες περιοχές της οθόνης. Η κάμερα παρακολουθεί τις κινήσεις των ματιών για την επιλογή γραμμάτων, λέξεων και εντολών.</p>
                 <ul>
-                    <li><strong>Look Left:</strong> Select items from the left column</li>
-                    <li><strong>Look Right:</strong> Select items from the right column</li>
-                    <li><strong>Look Up:</strong> Access special menu or go back</li>
-                    <li><strong>Look Down:</strong> Speak text or undo menu navigation</li>
+                    <li><strong data-i18n="help.howItWorks.lookLeft">Κοιτάξτε Αριστερά:</strong> <span data-i18n="help.howItWorks.lookLeftDesc">Επιλογή αντικειμένων από την αριστερή στήλη</span></li>
+                    <li><strong data-i18n="help.howItWorks.lookRight">Κοιτάξτε Δεξιά:</strong> <span data-i18n="help.howItWorks.lookRightDesc">Επιλογή αντικειμένων από τη δεξιά στήλη</span></li>
+                    <li><strong data-i18n="help.howItWorks.lookUp">Κοιτάξτε Πάνω:</strong> <span data-i18n="help.howItWorks.lookUpDesc">Πρόσβαση στο ειδικό μενού ή επιστροφή</span></li>
+                    <li><strong data-i18n="help.howItWorks.lookDown">Κοιτάξτε Κάτω:</strong> <span data-i18n="help.howItWorks.lookDownDesc">Εκφώνηση κειμένου ή αναίρεση πλοήγησης μενού</span></li>
                 </ul>
             </div>
 
             <div class="help-section">
-                <h4>🎯 About Calibration</h4>
-                <p><strong>What it is:</strong> Calibration teaches the system to recognize the user's specific eye movements (up, down, left, right).</p>
-                <p><strong>Why it's needed:</strong> Every person's eyes are different. Calibration creates a personalized baseline for accurate tracking.</p>
-                <p><strong>⚠️ Important:</strong> After calibration, the user's head position and screen position should remain unchanged. Moving the head or screen will require re-calibration for accurate tracking.</p>
+                <h4 data-i18n="help.calibration.title">🎯 Σχετικά με τη Βαθμονόμηση</h4>
+                <p><strong data-i18n="help.calibration.whatItIs">Τι είναι:</strong> <span data-i18n="help.calibration.whatItIsDesc">Η βαθμονόμηση διδάσκει το σύστημα να αναγνωρίζει τις συγκεκριμένες κινήσεις των ματιών του χρήστη (πάνω, κάτω, αριστερά, δεξιά).</span></p>
+                <p><strong data-i18n="help.calibration.whyNeeded">Γιατί χρειάζεται:</strong> <span data-i18n="help.calibration.whyNeededDesc">Τα μάτια κάθε ατόμου είναι διαφορετικά. Η βαθμονόμηση δημιουργεί μια εξατομικευμένη βάση για ακριβή παρακολούθηση.</span></p>
+                <p><strong data-i18n="help.calibration.important">⚠️ Σημαντικό:</strong> <span data-i18n="help.calibration.importantDesc">Μετά τη βαθμονόμηση, η θέση του κεφαλιού και της οθόνης του χρήστη πρέπει να παραμείνει αμετάβλητη. Η μετακίνηση του κεφαλιού ή της οθόνης θα απαιτήσει επαναβαθμονόμηση για ακριβή παρακολούθηση.</span></p>
             </div>
 
             <div class="help-section">
-                <h4>🔧 Fine-Tuning Settings</h4>
-                <p>Even after calibration, the system may need adjustment. Use the Settings panel to optimize performance:</p>
+                <h4 data-i18n="help.fineTuning.title">🔧 Λεπτομερής Ρύθμιση</h4>
+                <p data-i18n="help.fineTuning.description">Ακόμη και μετά τη βαθμονόμηση, το σύστημα μπορεί να χρειαστεί προσαρμογή. Χρησιμοποιήστε τον πίνακα Ρυθμίσεων για βελτιστοποίηση της απόδοσης:</p>
                 <ul>
-                    <li><strong>Direction Thresholds (Up/Down/Left/Right):</strong> How far the user must look to trigger detection. Lower = easier to trigger, Higher = harder to trigger.</li>
-                    <li><strong>Hold Duration:</strong> How long the user must hold their gaze (100-2000ms). Shorter = faster but may trigger accidentally.</li>
-                    <li><strong>Stability Frames:</strong> How steady the gaze must be (2-10 frames). Lower = more responsive, Higher = more stable.</li>
-                    <li><strong>Smoothing Factor:</strong> Reduces jitter in detection (0.1 = responsive, 0.9 = smooth).</li>
+                    <li><strong data-i18n="help.fineTuning.thresholds">Όρια Κατεύθυνσης (Πάνω/Κάτω/Αριστερά/Δεξιά):</strong> <span data-i18n="help.fineTuning.thresholdsDesc">Πόσο μακριά πρέπει να κοιτάξει ο χρήστης για να ενεργοποιηθεί η ανίχνευση. Χαμηλότερο = ευκολότερο, Υψηλότερο = δυσκολότερο.</span></li>
+                    <li><strong data-i18n="help.fineTuning.holdDuration">Διάρκεια Κρατήματος:</strong> <span data-i18n="help.fineTuning.holdDurationDesc">Πόσο χρόνο πρέπει ο χρήστης να κρατήσει το βλέμμα του (100-2000ms). Μικρότερο = γρηγορότερο αλλά μπορεί να ενεργοποιηθεί κατά λάθος.</span></li>
+                    <li><strong data-i18n="help.fineTuning.stability">Καρέ Σταθερότητας:</strong> <span data-i18n="help.fineTuning.stabilityDesc">Πόσο σταθερό πρέπει να είναι το βλέμμα (2-10 καρέ). Χαμηλότερο = πιο αποκριτικό, Υψηλότερο = πιο σταθερό.</span></li>
+                    <li><strong data-i18n="help.fineTuning.smoothing">Παράγοντας Εξομάλυνσης:</strong> <span data-i18n="help.fineTuning.smoothingDesc">Μειώνει το τρεμοπαίγμα στην ανίχνευση (0.1 = αποκριτικό, 0.9 = ομαλό).</span></li>
                 </ul>
-                <p><em>💡 Tip: If selections trigger too easily, increase thresholds. If they're too hard, decrease thresholds.</em></p>
+                <p><em data-i18n="help.fineTuning.tip">💡 Συμβουλή: Αν οι επιλογές ενεργοποιούνται πολύ εύκολα, αυξήστε τα όρια. Αν είναι πολύ δύσκολες, μειώστε τα όρια.</em></p>
             </div>
 
             <div class="help-section">
-                <h4>🔄 Re-calibration</h4>
-                <p>Click "Re-calibrate Thresholds" in Settings if:</p>
+                <h4 data-i18n="help.recalibration.title">🔄 Επαναβαθμονόμηση</h4>
+                <p data-i18n="help.recalibration.description">Κάντε κλικ στο "Επαναβαθμονόμηση Ορίων" στις Ρυθμίσεις αν:</p>
                 <ul>
-                    <li>The user's position has changed</li>
-                    <li>The screen has been moved</li>
-                    <li>Accuracy has decreased</li>
+                    <li data-i18n="help.recalibration.reason1">Η θέση του χρήστη έχει αλλάξει</li>
+                    <li data-i18n="help.recalibration.reason2">Η οθόνη έχει μετακινηθεί</li>
+                    <li data-i18n="help.recalibration.reason3">Η ακρίβεια έχει μειωθεί</li>
                 </ul>
             </div>
 
-            <button class="help-close-btn" id="helpCloseBtn">✖ Close</button>
+            <button class="help-close-btn" id="helpCloseBtn" data-i18n="help.closeBtn">✖ Κλείσιμο</button>
         </div>
     </div>
 
     <div class="container">
-        <div class="instructions">
-            <strong>Look Left</strong> Select Left & Continue | <strong>Look Right</strong> Select Right & Continue | <strong>Look Up</strong> Special Menu / Back | <strong>Look Down</strong> Speech / menu undo
+        <div class="instructions" data-i18n="instructions">
+            <strong>Κοιτάξτε Αριστερά</strong> Επιλογή Αριστερά & Συνέχεια | <strong>Κοιτάξτε Δεξιά</strong> Επιλογή Δεξιά & Συνέχεια | <strong>Κοιτάξτε Πάνω</strong> Ειδικό Μενού / Πίσω | <strong>Κοιτάξτε Κάτω</strong> Ομιλία / αναίρεση μενού
         </div>
 
-        <div class="mode-indicator" id="modeIndicator">Letter Selection Mode</div>
+        <div class="mode-indicator" id="modeIndicator" data-i18n="modes.letterSelection">Λειτουργία Επιλογής Γραμμάτων</div>
 
         <!-- Result Viewer (hidden by default) -->
         <div class="result-viewer" id="resultViewer" style="display: none;">
             <div class="result-viewer-header">
-                <div class="result-viewer-title" id="resultViewerTitle">Loading...</div>
-                <div class="result-viewer-back">👆 Up to Return | ⬅️ Scroll Up | ➡️ Scroll Down</div>
+                <div class="result-viewer-title" id="resultViewerTitle" data-i18n="resultViewer.loading">Φόρτωση...</div>
+                <div class="result-viewer-back" data-i18n="resultViewer.backInstructions">👆 Πάνω για Επιστροφή | ⬅️ Κύλιση Πάνω | ➡️ Κύλιση Κάτω</div>
             </div>
             <div class="result-content" id="resultContent"></div>
         </div>
@@ -184,12 +194,17 @@
         </div>
 
         <div class="text-area-container">
-            <textarea class="text-area" id="textArea" readonly placeholder="Your text will appear here..."></textarea>
+            <textarea class="text-area" id="textArea" readonly data-i18n-attr="placeholder" placeholder="Το κείμενό σας θα εμφανιστεί εδώ..."></textarea>
         </div>
     </div>
 
     <!-- Configuration -->
     <script src="config.js?v=4.4"></script>
+
+    <!-- Language Files -->
+    <script src="lang-el.js?v=4.4"></script>
+    <script src="lang-en.js?v=4.4"></script>
+    <script src="language.js?v=4.4"></script>
 
     <!-- Database -->
     <script src="database.js?v=4.4"></script>

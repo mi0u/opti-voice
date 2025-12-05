@@ -54,12 +54,12 @@ function createManageCustomMenu() {
 
     if (entries.length === 0) {
         entries.push({
-            label: 'No Custom Entries',
+            label: t('menu.noCustomEntries'),
             action: 'return'
         });
     }
 
-    entries.push({ label: '⌂ Return', action: 'return' });
+    entries.push({ label: t('menu.return'), action: 'return' });
 
     return entries;
 }
@@ -78,7 +78,7 @@ function createSuggestionsMenu() {
         completion: suggestion
     }));
 
-    menu.push({ label: '✗ Cancel', action: 'return' });
+    menu.push({ label: t('menu.cancel'), action: 'return' });
 
     return menu;
 }
@@ -109,13 +109,13 @@ function createSearchResultsMenu() {
     const hasPrevious = currentSearchPage > 0;
 
     if (hasPrevious) {
-        menu.push({ label: '← Previous', action: 'previous_page' });
+        menu.push({ label: t('menu.previousPage'), action: 'previous_page' });
     }
     if (hasMore) {
-        menu.push({ label: 'Next →', action: 'next_page' });
+        menu.push({ label: t('menu.nextPage'), action: 'next_page' });
     }
 
-    menu.push({ label: '⌂ Return', action: 'return' });
+    menu.push({ label: t('menu.return'), action: 'return' });
 
     return menu;
 }
@@ -294,17 +294,23 @@ function createMenuItem(item) {
 }
 
 function updateModeIndicator() {
-    if (isCustomManageMode) {
-        modeIndicator.textContent = 'Delete Custom Entries';
+    const modeIndicator = document.getElementById('modeIndicator');
+    if (!modeIndicator) return;
+
+    if (isSearchMode) {
+        modeIndicator.textContent = t('modes.searchResults');
+        modeIndicator.className = 'mode-indicator search';
+    } else if (isCustomManageMode) {
+        modeIndicator.textContent = t('modes.customManage');
         modeIndicator.className = 'mode-indicator custom';
     } else if (isSuggestionMode) {
-        modeIndicator.textContent = 'Word Suggestions';
+        modeIndicator.textContent = t('modes.suggestions');
         modeIndicator.className = 'mode-indicator suggestions';
     } else if (isSpecialMode) {
-        modeIndicator.textContent = 'Special Functions Menu';
+        modeIndicator.textContent = t('modes.specialMenu');
         modeIndicator.className = 'mode-indicator special';
     } else {
-        modeIndicator.textContent = 'Letter Selection Mode';
+        modeIndicator.textContent = t('modes.letterSelection');
         modeIndicator.className = 'mode-indicator';
     }
 }
