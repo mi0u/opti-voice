@@ -121,6 +121,12 @@ document.addEventListener('keydown', (e) => {
 
 // Initialize application
 loadCustomEntries();
+
+// Load keyboard type preference (must be done before renderMenu)
+if (typeof loadKeyboardTypePreference === 'function') {
+    loadKeyboardTypePreference();
+}
+
 renderMenu();
 
 // Start eye tracking when page loads

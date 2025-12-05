@@ -33,7 +33,9 @@ function selectColumn(direction) {
         // Don't reset menu for search-related actions - they handle their own menu updates
         if (item.action === 'next_page' ||
             item.action === 'previous_page' ||
-            item.action === 'open_result') {
+            item.action === 'open_result' ||
+            item.action === 'keyboard_type' ||
+            item.action === 'set_keyboard') {
             return;
         }
 
@@ -222,6 +224,26 @@ function executeAction(action, data, itemData) {
             isSpecialMode = false;
             isSuggestionMode = false;
             currentMenu = createManageCustomMenu();
+            menuStack = [];
+            renderMenu();
+            break;
+        case 'keyboard_type':
+            // Show keyboard type selection menu
+            menuStack.push([...currentMenu]);
+            currentMenu = createKeyboardTypeMenu();
+            // Stay in special mode when showing keyboard menu
+            isSpecialMode = true;
+            renderMenu();
+            break;
+        case 'set_keyboard':
+            // Set the keyboard type
+            setKeyboardType(itemData.keyboardType);
+            // Return to main menu
+            isSpecialMode = false;
+            isSuggestionMode = false;
+            isCustomManageMode = false;
+            isSearchMode = false;
+            currentMenu = [...mainMenu];
             menuStack = [];
             renderMenu();
             break;

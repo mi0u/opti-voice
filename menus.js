@@ -3,11 +3,31 @@
 // =============================================================================
 
 // Lowercase Greek alphabet + common functions
-const mainMenu = [
+const greekMenu = [
     'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ',
     'ν', 'ξ', 'ο', 'π', 'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω',
     { label: '⌫ Backspace', action: 'backspace' }, { label: '␣ Space', action: 'space' }
 ];
+
+// Lowercase English alphabet + common functions
+const englishMenu = [
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+    'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+    { label: '⌫ Backspace', action: 'backspace' }, { label: '␣ Space', action: 'space' }
+];
+
+// Numerical keyboard + common functions
+const numericalMenu = [
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    '+', '-', '*', '/', '=', '.', ',',
+    { label: '⌫ Backspace', action: 'backspace' }, { label: '␣ Space', action: 'space' }
+];
+
+// Main menu reference - starts with Greek
+let mainMenu = [...greekMenu];
+
+// Keyboard type state
+let currentKeyboardType = 'greek'; // 'greek', 'english', or 'numerical'
 
 const specialMenu = [
     { label: '🔊 Speak', action: 'speak' },
@@ -20,8 +40,29 @@ const specialMenu = [
     { label: '🔍 Web Search', action: 'google_search' },
     { label: '➕ Add to Custom', action: 'add_custom' },
     { label: '🗑️ Delete Custom', action: 'manage_custom' },
+    { label: '⌨️ Keyboard Type', action: 'keyboard_type' },
     { label: '⌂ Return', action: 'return' }
 ];
+
+// Keyboard type selection menu
+function createKeyboardTypeMenu() {
+    const menu = [
+        { label: '🏛️ Greek', action: 'set_keyboard', keyboardType: 'greek' },
+        { label: '🗽 English', action: 'set_keyboard', keyboardType: 'english' },
+        { label: '🔢 Numerical', action: 'set_keyboard', keyboardType: 'numerical' },
+        { label: '⌂ Return', action: 'return' }
+    ];
+
+    // Update labels with translations if available
+    if (typeof t === 'function') {
+        menu[0].label = t('menu.keyboardGreek');
+        menu[1].label = t('menu.keyboardEnglish');
+        menu[2].label = t('menu.keyboardNumerical');
+        menu[3].label = t('menu.return');
+    }
+
+    return menu;
+}
 
 // Create menu for managing (deleting) custom entries
 function createManageCustomMenu() {
@@ -338,3 +379,62 @@ function goBackInMenu() {
     }
     return false; // Already at initial state
 }
+
+// Set keyboard type and update main menu
+function setKeyboardType(type) {
+    if (type !== 'greek' && type !== 'english' && type !== 'numerical') {
+        console.error('[KEYBOARD] Invalid keyboard type:', type);
+        return;
+    }
+
+    currentKeyboardType = type;
+
+    // Update mainMenu based on keyboard type
+    if (type === 'greek') {
+        mainMenu = [...greekMenu];
+    } else if (type === 'english') {
+        mainMenu = [...englishMenu];
+    } else if (type === 'numerical') {
+        mainMenu = [...numericalMenu];
+    }
+
+    // Switch word and phrase databases
+    if (typeof switchWordDatabase === 'function') {
+        switchWordDatabase(type);
+    }
+    if (typeof switchPhraseDatabase === 'function') {
+        switchPhraseDatabase(type);
+    }
+
+    // Save preference
+    saveKeyboardTypePreference(type);
+
+    console.log('[KEYBOARD] Keyboard type changed to:', type);
+}
+
+// Save keyboard type preference to localStorage
+function saveKeyboardTypePreference(type) {
+    try {
+        localStorage.setItem('keyboardType', type);
+        console.log('[KEYBOARD] Saved keyboard type preference:', type);
+    } catch (error) {
+        console.error('[KEYBOARD] Error saving keyboard type preference:', error);
+    }
+}
+
+// Load keyboard type preference from localStorage
+function loadKeyboardTypePreference() {
+    try {
+        const stored = localStorage.getItem('keyboardType');
+        if (stored && (stored === 'greek' || stored === 'english' || stored === 'numerical')) {
+            setKeyboardType(stored);
+            console.log('[KEYBOARD] Loaded keyboard type preference:', stored);
+            return stored;
+        }
+    } catch (error) {
+        console.error('[KEYBOARD] Error loading keyboard type preference:', error);
+    }
+    console.log('[KEYBOARD] Using default keyboard type: greek');
+    return 'greek';
+}
+

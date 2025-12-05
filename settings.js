@@ -131,6 +131,16 @@ function initializeSettingsPanel() {
         languageSelect.addEventListener('change', (e) => {
             const newLang = e.target.value;
             switchLanguage(newLang);
+
+            // Also change keyboard type to match language
+            if (typeof setKeyboardType === 'function') {
+                if (newLang === 'el') {
+                    setKeyboardType('greek');
+                } else if (newLang === 'en') {
+                    setKeyboardType('english');
+                }
+            }
+
             console.log('[SETTINGS] Language changed to:', newLang);
         });
     }

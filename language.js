@@ -128,11 +128,18 @@ function updateMenuTranslations() {
     specialMenu[7].label = t('menu.webSearch');
     specialMenu[8].label = t('menu.addCustom');
     specialMenu[9].label = t('menu.deleteCustom');
-    specialMenu[10].label = t('menu.return');
+    specialMenu[10].label = t('menu.keyboardType');
+    specialMenu[11].label = t('menu.return');
 
     // Update main menu
-    mainMenu[24].label = t('menu.backspace');
-    mainMenu[25].label = t('menu.space');
+    const lastIndex = mainMenu.length - 1;
+    const secondLastIndex = mainMenu.length - 2;
+    if (mainMenu[secondLastIndex] && typeof mainMenu[secondLastIndex] === 'object') {
+        mainMenu[secondLastIndex].label = t('menu.backspace');
+    }
+    if (mainMenu[lastIndex] && typeof mainMenu[lastIndex] === 'object') {
+        mainMenu[lastIndex].label = t('menu.space');
+    }
 
     // Re-render menu if we're in special mode
     if (isSpecialMode) {
@@ -161,7 +168,20 @@ function updateModeIndicator() {
 // Initialize language system
 function initializeLanguage() {
     // Load language preference
-    loadLanguagePreference();
+    const lang = loadLanguagePreference();
+
+    // Set initial keyboard type based on language if not already set
+    if (typeof loadKeyboardTypePreference === 'function') {
+        const storedKeyboardType = localStorage.getItem('keyboardType');
+        // Only auto-set keyboard type if user hasn't explicitly chosen one
+        if (!storedKeyboardType && typeof setKeyboardType === 'function') {
+            if (lang === 'el') {
+                setKeyboardType('greek');
+            } else if (lang === 'en') {
+                setKeyboardType('english');
+            }
+        }
+    }
 
     // Update UI with current language
     updateUILanguage();
