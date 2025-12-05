@@ -31,6 +31,9 @@
     <!-- Settings Panel Toggle Button -->
     <button class="settings-toggle-btn" id="settingsToggleBtn">⚙️ Settings</button>
 
+    <!-- Help Button -->
+    <button class="help-toggle-btn" id="helpToggleBtn">❓ Help</button>
+
     <!-- Settings Panel -->
     <div class="settings-panel" id="settingsPanel">
         <h3>Eye Tracking Settings</h3>
@@ -108,6 +111,55 @@
         <button class="reset-btn" id="resetBtn">Reset to Defaults</button>
         <button class="reset-btn" id="recalibrateBtn" style="margin-top: 10px; background: #2196F3;">Re-calibrate Thresholds</button>
         <small class="help-text">Press 'O' key to log current eye tracking values to console</small>
+    </div>
+
+    <!-- Help Panel -->
+    <div class="help-panel" id="helpPanel">
+        <div class="help-content">
+            <h3>❓ Helper's Guide</h3>
+
+            <div class="help-section">
+                <h4>📖 How This App Works</h4>
+                <p>This app lets the user communicate by looking at different areas of the screen. The camera tracks their eye movements to select letters, words, and commands.</p>
+                <ul>
+                    <li><strong>Look Left:</strong> Select items from the left column</li>
+                    <li><strong>Look Right:</strong> Select items from the right column</li>
+                    <li><strong>Look Up:</strong> Access special menu or go back</li>
+                    <li><strong>Look Down:</strong> Speak text or undo menu navigation</li>
+                </ul>
+            </div>
+
+            <div class="help-section">
+                <h4>🎯 About Calibration</h4>
+                <p><strong>What it is:</strong> Calibration teaches the system to recognize the user's specific eye movements (up, down, left, right).</p>
+                <p><strong>Why it's needed:</strong> Every person's eyes are different. Calibration creates a personalized baseline for accurate tracking.</p>
+                <p><strong>⚠️ Important:</strong> After calibration, the user's head position and screen position should remain unchanged. Moving the head or screen will require re-calibration for accurate tracking.</p>
+            </div>
+
+            <div class="help-section">
+                <h4>🔧 Fine-Tuning Settings</h4>
+                <p>Even after calibration, the system may need adjustment. Use the Settings panel to optimize performance:</p>
+                <ul>
+                    <li><strong>Direction Thresholds (Up/Down/Left/Right):</strong> How far the user must look to trigger detection. Lower = easier to trigger, Higher = harder to trigger.</li>
+                    <li><strong>Hold Duration:</strong> How long the user must hold their gaze (100-2000ms). Shorter = faster but may trigger accidentally.</li>
+                    <li><strong>Stability Frames:</strong> How steady the gaze must be (2-10 frames). Lower = more responsive, Higher = more stable.</li>
+                    <li><strong>Smoothing Factor:</strong> Reduces jitter in detection (0.1 = responsive, 0.9 = smooth).</li>
+                </ul>
+                <p><em>💡 Tip: If selections trigger too easily, increase thresholds. If they're too hard, decrease thresholds.</em></p>
+            </div>
+
+            <div class="help-section">
+                <h4>🔄 Re-calibration</h4>
+                <p>Click "Re-calibrate Thresholds" in Settings if:</p>
+                <ul>
+                    <li>The user's position has changed</li>
+                    <li>The screen has been moved</li>
+                    <li>Accuracy has decreased</li>
+                </ul>
+            </div>
+
+            <button class="help-close-btn" id="helpCloseBtn">✖ Close</button>
+        </div>
     </div>
 
     <div class="container">

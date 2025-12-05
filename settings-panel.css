@@ -30,6 +30,35 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* Help Button - positioned next to settings */
+.help-toggle-btn {
+    position: fixed;
+    top: 10px;
+    left: 140px;
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    z-index: 1001;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.help-toggle-btn:hover {
+    background: #2ecc71;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
+}
+
+.help-toggle-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
 .settings-panel {
     position: fixed;
     top: 60px;
@@ -228,5 +257,168 @@
         right: 10px;
         left: 10px;
         max-height: 70vh;
+    }
+}
+
+/* =============================================================================
+   HELP PANEL STYLES
+   ============================================================================= */
+
+.help-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.help-panel.visible {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.help-content {
+    background: #2c3e50;
+    color: white;
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 700px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.help-content h3 {
+    margin: 0 0 25px 0;
+    font-size: 28px;
+    color: #27ae60;
+    border-bottom: 3px solid #27ae60;
+    padding-bottom: 12px;
+    text-align: center;
+}
+
+.help-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border-left: 4px solid #27ae60;
+}
+
+.help-section h4 {
+    margin: 0 0 12px 0;
+    font-size: 18px;
+    color: #2ecc71;
+}
+
+.help-section p {
+    margin: 10px 0;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.help-section ul {
+    margin: 10px 0;
+    padding-left: 25px;
+}
+
+.help-section li {
+    margin: 8px 0;
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+.help-section strong {
+    color: #3498db;
+}
+
+.help-section em {
+    color: #f39c12;
+    font-style: normal;
+}
+
+.help-close-btn {
+    width: 100%;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 20px;
+    transition: all 0.3s ease;
+}
+
+.help-close-btn:hover {
+    background: #c0392b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.help-close-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Scrollbar styling for help panel */
+.help-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.help-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.help-content::-webkit-scrollbar-thumb {
+    background: #27ae60;
+    border-radius: 4px;
+}
+
+.help-content::-webkit-scrollbar-thumb:hover {
+    background: #2ecc71;
+}
+
+/* Responsive help panel */
+@media (max-width: 768px) {
+    .help-content {
+        width: calc(100% - 20px);
+        max-width: 100%;
+        padding: 20px;
+        max-height: 90vh;
+    }
+
+    .help-toggle-btn {
+        left: 120px;
+        padding: 10px 15px;
+        font-size: 14px;
     }
 }

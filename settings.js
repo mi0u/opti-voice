@@ -3,6 +3,7 @@
 // =============================================================================
 
 let settingsPanelVisible = false;
+let helpPanelVisible = false;
 const SETTINGS_STORAGE_KEY = 'eyeTrackingSettings';
 
 // Load settings from localStorage
@@ -65,6 +66,9 @@ function initializeSettingsPanel() {
             settingsPanel.classList.remove('visible');
         }
     });
+
+    // Initialize help panel
+    initializeHelpPanel();
 
     // Setup all sliders
     setupSlider('upThreshold', 'upValue', 'UP_THRESHOLD', (val) => val.toFixed(2));
@@ -239,6 +243,46 @@ function logCurrentEyeTrackingValues() {
     }
 
     console.log('========================================\n');
+}
+
+// =============================================================================
+// HELP PANEL MANAGEMENT
+// =============================================================================
+
+function initializeHelpPanel() {
+    const helpToggleBtn = document.getElementById('helpToggleBtn');
+    const helpPanel = document.getElementById('helpPanel');
+    const helpCloseBtn = document.getElementById('helpCloseBtn');
+
+    // Toggle help panel visibility when help button is clicked
+    helpToggleBtn.addEventListener('click', () => {
+        helpPanelVisible = true;
+        helpPanel.classList.add('visible');
+    });
+
+    // Close help panel when close button is clicked
+    helpCloseBtn.addEventListener('click', () => {
+        helpPanelVisible = false;
+        helpPanel.classList.remove('visible');
+    });
+
+    // Close help panel when clicking outside the content
+    helpPanel.addEventListener('click', (e) => {
+        if (e.target === helpPanel) {
+            helpPanelVisible = false;
+            helpPanel.classList.remove('visible');
+        }
+    });
+
+    // Close help panel with Escape key
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && helpPanelVisible) {
+            helpPanelVisible = false;
+            helpPanel.classList.remove('visible');
+        }
+    });
+
+    console.log('[HELP] Help panel initialized');
 }
 
 // Keyboard listener for 'O' key
